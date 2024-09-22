@@ -14,6 +14,9 @@ client = MongoClient(MONGO_URI)
 db = client['telegram_bot']
 settings_collection = db['settings']
 
+# Admins list: Add your admin IDs here
+ADMIN_IDS = [6025969005]  # Add more admin IDs if necessary
+
 # Default caption format in HTML
 DEFAULT_CAPTION = "<b>{movie_name}</b> - <i>{release_date}</i> 🎬<br>🌟 Rating: {rating} | 🌍 Language: {language} | 🎭 Genres: {genres}<br>\"Get ready to watch this amazing movie!\""
 
@@ -40,8 +43,17 @@ async def get_forward_channels():
     settings = settings_collection.find_one({"_id": "forward_channels"})
     return settings.get('channels', []) if settings else []
 
+# Helper function to check if user is an admin
+def check_admin(user_id):
+    return user_id in ADMIN_IDS
+
 # Command: start
 async def start(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    if not check_admin(user_id):
+        await update.message.reply_text("You are not authorized to use this command.")
+        return
+        
     await update.message.reply_text('Welcome! Use the commands below to interact with the bot.\n'
                                     '/get_movie <movie name> - Fetch movie details and create post\n'
                                     '/setcaption <caption_format> - Set caption format for posts\n'
@@ -53,6 +65,11 @@ async def start(update: Update, context: CallbackContext) -> None:
 
 # Command: set custom caption format
 async def set_caption(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    if not check_admin(user_id):
+        await update.message.reply_text("You are not authorized to use this command.")
+        return
+
     caption = " ".join(context.args)
     if caption:
         settings_collection.update_one({"_id": "caption"}, {"$set": {"caption": caption}}, upsert=True)
@@ -62,6 +79,11 @@ async def set_caption(update: Update, context: CallbackContext) -> None:
 
 # Command: get movie details and handle optional year
 async def get_movie(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    if not check_admin(user_id):
+        await update.message.reply_text("You are not authorized to use this command.")
+        return
+        
     query = " ".join(context.args).strip()
     if "," in query:
         movie_name, year = [x.strip() for x in query.split(",", 1)]
@@ -94,30 +116,41 @@ async def get_movie(update: Update, context: CallbackContext) -> None:
 
 # Function to send movie post based on selected details
 async def send_movie_post(update, movie):
-    caption_format = await get_caption()
-    thumbnails_disabled = await are_posters_disabled()
+        caption_format = await get_caption()
+        thumbnails_disabled = await are_posters_disabled()
 
-    thumbnail = movie.get('Poster', None) if not thumbnails_disabled else None
+        thumbnail = movie.get('Poster', None) if not thumbnails_disabled else None
 
-    # Caption formatted for Markdown
-    caption = caption_format.format(
-        movie_name=f"`{movie.get('Title', 'Unknown')} {movie.get('Year', 'Unknown')}`",
-        release_date=movie.get('Year', 'Unknown'),
-        rating=movie.get('imdbRating', 'N/A'),
-        language=movie.get('Language', 'Unknown'),
-        genres=movie.get('Genre', 'Unknown')
-    )
+        # Caption formatted for Markdown
+        caption = caption_format.format(
+            movie_name=f"`{movie.get('Title', 'Unknown')} {movie.get('Year', 'Unknown')}`",
+            release_date=movie.get('Year', 'Unknown'),
+            rating=movie.get('imdbRating', 'N/A'),
+            language=movie.get('Language', 'Unknown'),
+            genres=movie.get('Genre', 'Unknown')
+        )
 
-    # Markdown formatting
-    caption = caption.replace('<b>', '*').replace('</b>', '*')
-    caption = caption.replace('<i>', '_').replace('</i>', '_')
-    caption = caption.replace('<br>', '\n')
+        # Markdown formatting
+        caption = caption.replace('<b>', '*').replace('</b>', '*')
+        caption = caption.replace('<i>', '_').replace('</i>', '_')
+        caption = caption.replace('<br>', '\n')
 
-    # Send message with or without thumbnail
-    if thumbnail:
-        await update.message.reply_photo(photo=thumbnail, caption=caption, parse_mode='Markdown')
-    else:
-        await update.message.reply_text(text=caption, parse_mode='Markdown')
+        # Create buttons
+        buttons = [
+            [InlineKeyboardButton("Channel Link",
+                                  url="https://t.me/your_channel_link")],
+            [InlineKeyboardButton("Bot Link", url="https://t.me/your_bot_link")]
+        ]
+        reply_markup = InlineKeyboardMarkup(buttons)
+
+        # Send message with or without thumbnail
+        if thumbnail:
+            await update.message.reply_photo(photo=thumbnail, caption=caption,
+                                             parse_mode='Markdown',
+                                             reply_markup=reply_markup)
+        else:
+            await update.message.reply_text(text=caption, parse_mode='Markdown',
+                                            reply_markup=reply_markup)
 
 # CallbackQuery: handle movie selection from button list
 async def movie_selection(update: Update, context: CallbackContext) -> None:
@@ -133,16 +166,31 @@ async def movie_selection(update: Update, context: CallbackContext) -> None:
 
 # Command: set poster as thumbnail
 async def set_poster(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    if not check_admin(user_id):
+        await update.message.reply_text("You are not authorized to use this command.")
+        return
+
     settings_collection.update_one({"_id": "posters"}, {"$set": {"disabled": False}}, upsert=True)
     await update.message.reply_text('Poster will be used as thumbnail.')
 
 # Command: off poster from thumbnail
 async def off_poster(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    if not check_admin(user_id):
+        await update.message.reply_text("You are not authorized to use this command.")
+        return
+
     settings_collection.update_one({"_id": "posters"}, {"$set": {"disabled": True}}, upsert=True)
     await update.message.reply_text('Poster will not be used as thumbnail until /setposter is called again.')
 
 # Command: replace text in a post with simplified logic
 async def replace_text(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    if not check_admin(user_id):
+        await update.message.reply_text("You are not authorized to use this command.")
+        return
+
     if update.message.reply_to_message:
         reply_message = update.message.reply_to_message
         text = reply_message.text or reply_message.caption
@@ -152,8 +200,8 @@ async def replace_text(update: Update, context: CallbackContext) -> None:
 
         if len(context.args) < 3 or "to" not in context.args:
             await update.message.reply_text("Usage: /replace <old_text> to <new_text>\n"
-                                              "Example: /replace hello sir to Nice To Meet You sir\n"
-                                              "This will replace 'hello sir' with 'Nice To Meet You sir' in the replied post.")
+                                            "Example: /replace hello sir to Nice To Meet You sir\n"
+                                            "This will replace 'hello sir' with 'Nice To Meet You sir' in the replied post.")
             return
 
         # Splitting the command input
@@ -172,6 +220,11 @@ async def replace_text(update: Update, context: CallbackContext) -> None:
 
 # Add Forward Channels and replace existing ones
 async def add_forward(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    if not check_admin(user_id):
+        await update.message.reply_text("You are not authorized to use this command.")
+        return
+        
     channel_ids = context.args
     if not channel_ids:
         await update.message.reply_text("Usage: /addforward <channel_id_1> <channel_id_2> ...")
@@ -184,6 +237,11 @@ async def add_forward(update: Update, context: CallbackContext) -> None:
 
 # Command: forward last edited post to all channels
 async def forward_post(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    if not check_admin(user_id):
+        await update.message.reply_text("You are not authorized to use this command.")
+        return
+        
     forward_channels = await get_forward_channels()
     if not forward_channels:
         await update.message.reply_text("No channels set for forwarding. Use /addforward to add channels.")
@@ -191,55 +249,35 @@ async def forward_post(update: Update, context: CallbackContext) -> None:
 
     if update.message.reply_to_message:
         reply_message = update.message.reply_to_message
-        text = reply_message.text or reply_message.caption
-        if not text:
-            await update.message.reply_text("No text to forward in the replied post.")
-            return
 
-        buttons = [
-            [InlineKeyboardButton("Visit Channel", url="https://t.me/+5Mo8Iq-1dWQxMTc1")],
-            [InlineKeyboardButton("Visit Bot", url="https://t.me/MissRozyyBot")]
-        ]
-        reply_markup = InlineKeyboardMarkup(buttons)
-
-        # Check if the message contains a photo (thumbnail)
-        if reply_message.photo:
-            photo = reply_message.photo[-1].file_id  # Get the highest resolution photo
-
-            for channel_id in forward_channels:
-                try:
-                    # Forward the message with the photo and buttons
-                    await context.bot.send_photo(chat_id=channel_id, photo=photo, caption=text, reply_markup=reply_markup)
-                except Exception as e:
-                    await update.message.reply_text(f"Error forwarding to channel {channel_id}: {str(e)}")
-
-        else:
-            for channel_id in forward_channels:
-                try:
-                    # Forward the message without the photo, just text and buttons
-                    await context.bot.send_message(chat_id=channel_id, text=text, reply_markup=reply_markup)
-                except Exception as e:
-                    await update.message.reply_text(f"Error forwarding to channel {channel_id}: {str(e)}")
+        # Forward the original message to each channel
+        for channel_id in forward_channels:
+            try:
+                await context.bot.forward_message(chat_id=channel_id, from_chat_id=reply_message.chat.id, message_id=reply_message.message_id)
+            except Exception as e:
+                await update.message.reply_text(f"Error forwarding to channel {channel_id}: {str(e)}")
 
         await update.message.reply_text(f"Post forwarded to: {', '.join(forward_channels)}")
     else:
         await update.message.reply_text("Please reply to a message to forward.")
 
-# Main function to start the bot
+
+
+# Create Application instance and add handlers
 def main() -> None:
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-    # Register handlers
+    # Command handlers
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("setcaption", set_caption))
     application.add_handler(CommandHandler("get_movie", get_movie))
+    application.add_handler(CommandHandler("setcaption", set_caption))
     application.add_handler(CommandHandler("setposter", set_poster))
     application.add_handler(CommandHandler("offposter", off_poster))
     application.add_handler(CommandHandler("replace", replace_text))
     application.add_handler(CommandHandler("addforward", add_forward))
     application.add_handler(CommandHandler("forward", forward_post))
 
-    # Register callback query handler for movie selection
+    # Callback query handler for movie selection
     application.add_handler(CallbackQueryHandler(movie_selection))
 
     # Start the bot
