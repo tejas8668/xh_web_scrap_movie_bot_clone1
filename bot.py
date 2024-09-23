@@ -10,6 +10,8 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 OMDB_API_KEY = os.getenv('OMDB_API_KEY')
 MONGO_URI = os.getenv('MONGO_URI')
 
+PORT = int(os.environ.get("PORT", 8080))
+
 client = MongoClient(MONGO_URI)
 db = client['telegram_bot']
 settings_collection = db['settings']
@@ -281,7 +283,13 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(movie_selection))
 
     # Start the bot
-    application.run_polling()
+    # Change this to use webhooks for services like Koyeb/Replit:
+    application.run_webhook(
+        listen="0.0.0.0",  # Listen on all available network interfaces
+        port=PORT,         # Port 8080 or any port defined in the environment
+        url_path=TELEGRAM_BOT_TOKEN,  # The token as the URL path for the webhook
+        webhook_url=f"https://interesting-andy-filmy-f29011a6.koyeb.app/{TELEGRAM_BOT_TOKEN}"  # Replace with your actual server URL
+    )
 
 if __name__ == '__main__':
     main()
