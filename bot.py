@@ -17,7 +17,7 @@ db = client['telegram_bot']
 settings_collection = db['settings']
 
 # Admins list: Add your admin IDs here
-ADMIN_IDS = [6025969005]  # Add more admin IDs if necessary
+ADMIN_IDS = [6018060368]  # Add more admin IDs if necessary
 
 # Default caption format in HTML
 DEFAULT_CAPTION = "<b>{movie_name}</b> - <i>{release_date}</i> 🎬<br>🌟 Rating: {rating} | 🌍 Language: {language} | 🎭 Genres: {genres}<br>\"Get ready to watch this amazing movie!\""
