@@ -139,9 +139,9 @@ async def send_movie_post(update, movie):
 
         # Create buttons
         buttons = [
-            [InlineKeyboardButton("Channel Link",
-                                  url="https://t.me/your_channel_link")],
-            [InlineKeyboardButton("Bot Link", url="https://t.me/your_bot_link")]
+            [InlineKeyboardButton("Search In Group",
+                                  url="https://t.me/movie_request_group_moviesmarket")],
+            [InlineKeyboardButton("Search In Bot", url="https://t.me/LazyAngelbot")]
         ]
         reply_markup = InlineKeyboardMarkup(buttons)
 
