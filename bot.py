@@ -53,7 +53,7 @@ def check_admin(user_id):
 async def start(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     if not check_admin(user_id):
-        await update.message.reply_text(f"You are not authorized to use this command.\n Contact developer to use this bot\n [Developer](https://t.me/Assistant_24_7_bot)")
+        await update.message.reply_text("You are not authorized to use this command.\n Contact developer to use this bot\n\n 🅓🅔🅥🅔🅛🅞🅟🅔🅡\n @Assistant_24_7_bot")
         return
         
     await update.message.reply_text('Welcome! Use the commands below to interact with the bot.\n'
@@ -69,7 +69,7 @@ async def start(update: Update, context: CallbackContext) -> None:
 async def set_caption(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     if not check_admin(user_id):
-        await update.message.reply_text("You are not authorized to use this command.")
+        await update.message.reply_text("You are not authorized to use this command.\n Contact developer to use this bot\n\n 🅓🅔🅥🅔🅛🅞🅟🅔🅡\n @Assistant_24_7_bot")
         return
 
     caption = " ".join(context.args)
@@ -83,7 +83,7 @@ async def set_caption(update: Update, context: CallbackContext) -> None:
 async def get_movie(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     if not check_admin(user_id):
-        await update.message.reply_text("You are not authorized to use this command.")
+        await update.message.reply_text("You are not authorized to use this command.\n Contact developer to use this bot\n\n 🅓🅔🅥🅔🅛🅞🅟🅔🅡\n @Assistant_24_7_bot")
         return
         
     query = " ".join(context.args).strip()
@@ -170,7 +170,7 @@ async def movie_selection(update: Update, context: CallbackContext) -> None:
 async def set_poster(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     if not check_admin(user_id):
-        await update.message.reply_text("You are not authorized to use this command.")
+        await update.message.reply_text("You are not authorized to use this command.\n Contact developer to use this bot\n\n 🅓🅔🅥🅔🅛🅞🅟🅔🅡\n @Assistant_24_7_bot")
         return
 
     settings_collection.update_one({"_id": "posters"}, {"$set": {"disabled": False}}, upsert=True)
@@ -180,7 +180,7 @@ async def set_poster(update: Update, context: CallbackContext) -> None:
 async def off_poster(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     if not check_admin(user_id):
-        await update.message.reply_text("You are not authorized to use this command.")
+        await update.message.reply_text("You are not authorized to use this command.\n Contact developer to use this bot\n\n 🅓🅔🅥🅔🅛🅞🅟🅔🅡\n @Assistant_24_7_bot")
         return
 
     settings_collection.update_one({"_id": "posters"}, {"$set": {"disabled": True}}, upsert=True)
@@ -190,7 +190,7 @@ async def off_poster(update: Update, context: CallbackContext) -> None:
 async def replace_text(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     if not check_admin(user_id):
-        await update.message.reply_text("You are not authorized to use this command.")
+        await update.message.reply_text("You are not authorized to use this command.\n Contact developer to use this bot\n\n 🅓🅔🅥🅔🅛🅞🅟🅔🅡\n @Assistant_24_7_bot")
         return
 
     if update.message.reply_to_message:
@@ -224,7 +224,7 @@ async def replace_text(update: Update, context: CallbackContext) -> None:
 async def add_forward(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     if not check_admin(user_id):
-        await update.message.reply_text("You are not authorized to use this command.")
+        await update.message.reply_text("You are not authorized to use this command.\n Contact developer to use this bot\n\n 🅓🅔🅥🅔🅛🅞🅟🅔🅡\n @Assistant_24_7_bot")
         return
         
     channel_ids = context.args
@@ -241,7 +241,7 @@ async def add_forward(update: Update, context: CallbackContext) -> None:
 async def forward_post(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     if not check_admin(user_id):
-        await update.message.reply_text("You are not authorized to use this command.")
+        await update.message.reply_text("You are not authorized to use this command.\n Contact developer to use this bot\n\n 🅓🅔🅥🅔🅛🅞🅟🅔🅡\n @Assistant_24_7_bot")
         return
         
     forward_channels = await get_forward_channels()
