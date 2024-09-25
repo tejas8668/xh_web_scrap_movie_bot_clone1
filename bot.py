@@ -17,7 +17,7 @@ db = client['telegram_bot']
 settings_collection = db['settings']
 
 # Admins list: Add your admin IDs here
-ADMIN_IDS = [6018060368]  # Add more admin IDs if necessary
+ADMIN_IDS = [6018060368, 6025969005, 6237722078]  # Add more admin IDs if necessary
 
 # Default caption format in HTML
 DEFAULT_CAPTION = "<b>🎬 Title : </b> {movie_name}<br><br><b>🗓 Release Date : {release_date}</b><br><b>🌟 IMDB Rating : {rating}<br>📢 Audio : Multi <br>🎭 Genres : {genres}<br>◀️ Quality : HD</b><br><br><b>🚨❓How To Download❓🚨</b><br><br><b>Now you can search this file on our movie request group or directly search in bot PM.<br>Tap on File Name, Copy & Search..</b><br><br><b>अब आप इस फ़ाइल को हमारे मूवी सर्च ग्रुप पर सर्च कर सकते हैं या सीधे बॉट पर सर्च सकते हैं।<br>फ़ाइल का नाम कॉपी करने के लीये फ़ाइल के नाम पर टैप करें, और सर्च करे ||</b>"
