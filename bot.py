@@ -53,7 +53,7 @@ def check_admin(user_id):
 async def start(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     if not check_admin(user_id):
-        await update.message.reply_text("You are not authorized to use this command.\n Contact developer to use this bot\n [Developer](https://t.me/Assistant_24_7_bot)")
+        await update.message.reply_text("You are not authorized to use this command.\n Contact developer to use this bot\n (https://t.me/Assistant_24_7_bot)[Developer]")
         return
         
     await update.message.reply_text('Welcome! Use the commands below to interact with the bot.\n'
