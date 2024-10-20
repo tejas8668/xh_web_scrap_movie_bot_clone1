@@ -83,7 +83,7 @@ async def set_caption(update: Update, context: CallbackContext) -> None:
 async def get_movie(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     if not check_admin(user_id):
-        await update.message.reply_text("You are not authorized to use this command.\n Contact developer to use this bot\n\n 🅓🅔🅥🅔🅛🅞🅟🅔🅡\n @Assistant_24_7_bot")
+        await update.message.reply_text("You are not authorized to use this command.\n Contact developer to use this bot\n\n 🅓🅔🅛🅞🅟🅔🅡\n @Assistant_24_7_bot")
         return
         
     query = " ".join(context.args).strip()
@@ -95,7 +95,7 @@ async def get_movie(update: Update, context: CallbackContext) -> None:
     if year:
         movie = fetch_movie_details(movie_name, year)
         if movie['Response'] == 'True':
-            await send_movie_post(update, movie)
+            await send_movie_post(update, movie, movie_name)  # Pass the movie_name
         else:
             await update.message.reply_text(f"No movie found for '{movie_name}' in {year}.")
     else:
@@ -117,42 +117,42 @@ async def get_movie(update: Update, context: CallbackContext) -> None:
             await update.message.reply_text(f"No movies found for '{movie_name}'.")
 
 # Function to send movie post based on selected details
-async def send_movie_post(update, movie):
-        caption_format = await get_caption()
-        thumbnails_disabled = await are_posters_disabled()
+async def send_movie_post(update, movie, movie_name):  # Accept movie_name
+    caption_format = await get_caption()
+    thumbnails_disabled = await are_posters_disabled()
 
-        thumbnail = movie.get('Poster', None) if not thumbnails_disabled else None
+    thumbnail = movie.get('Poster', None) if not thumbnails_disabled else None
 
-        # Caption formatted for Markdown
-        caption = caption_format.format(
-            movie_name=f"`{movie.get('Title', 'Unknown')} {movie.get('Year', 'Unknown')}`",
-            release_date=movie.get('Year', 'Unknown'),
-            rating=movie.get('imdbRating', 'N/A'),
-            language=movie.get('Language', 'Unknown'),
-            genres=movie.get('Genre', 'Unknown')
-        )
+    # Caption formatted for Markdown
+    caption = caption_format.format(
+        movie_name=f"`{movie_name}`",  # Use the user-provided movie name
+        release_date=movie.get('Year', 'Unknown'),
+        rating=movie.get('imdbRating', 'N/A'),
+        language=movie.get('Language', 'Unknown'),
+        genres=movie.get('Genre', 'Unknown')
+    )
 
-        # Markdown formatting
-        caption = caption.replace('<b>', '*').replace('</b>', '*')
-        caption = caption.replace('<i>', '_').replace('</i>', '_')
-        caption = caption.replace('<br>', '\n')
+    # Markdown formatting
+    caption = caption.replace('<b>', '*').replace('</b>', '*')
+    caption = caption.replace('<i>', '_').replace('</i>', '_')
+    caption = caption.replace('<br>', '\n')
 
-        # Create buttons
-        buttons = [
-            [InlineKeyboardButton("Search In Group",
-                                  url="https://t.me/movie_request_group_moviesmarket")],
-            [InlineKeyboardButton("Search In Bot", url="https://t.me/LazyAngelbot")]
-        ]
-        reply_markup = InlineKeyboardMarkup(buttons)
+    # Create buttons
+    buttons = [
+        [InlineKeyboardButton("Search In Group", url="https://t.me/movie_request_group_moviesmarket")],
+        [InlineKeyboardButton("Search In Bot", url="https://t.me/LazyAngelbot")]
+    ]
+    reply_markup = InlineKeyboardMarkup(buttons)
 
-        # Send message with or without thumbnail
-        if thumbnail:
-            await update.message.reply_photo(photo=thumbnail, caption=caption,
-                                             parse_mode='Markdown',
-                                             reply_markup=reply_markup)
-        else:
-            await update.message.reply_text(text=caption, parse_mode='Markdown',
-                                            reply_markup=reply_markup)
+    # Send message with or without thumbnail
+    if thumbnail:
+        await update.message.reply_photo(photo=thumbnail, caption=caption,
+                                          parse_mode='Markdown',
+                                          reply_markup=reply_markup)
+    else:
+        await update.message.reply_text(text=caption, parse_mode='Markdown',
+                                         reply_markup=reply_markup)
+
 
 # CallbackQuery: handle movie selection from button list
 async def movie_selection(update: Update, context: CallbackContext) -> None:
