@@ -84,7 +84,7 @@ async def set_caption(update: Update, context: CallbackContext) -> None:
 async def get_movie(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     if not check_admin(user_id):
-        await update.message.reply_text("You are not authorized to use this command.\n Contact developer to use this bot\n\n 🅓🅔🅛🅞🅟🅔🅡\n @Assistant_24_7_bot")
+        await update.message.reply_text("You are not authorized to use this command.\n Contact developer to use this bot\n\n 🅓🅔🅥🅔🅛🅞🅟🅔🅡\n @Assistant_24_7_bot")
         return
         
     query = " ".join(context.args).strip()
@@ -96,7 +96,7 @@ async def get_movie(update: Update, context: CallbackContext) -> None:
     if year:
         movie = fetch_movie_details(movie_name, year)
         if movie['Response'] == 'True':
-            await send_movie_post(update, movie, movie_name)  # Pass the movie_name
+            await send_movie_post(update, movie, movie_name)  # Pass the user-provided movie_name
         else:
             await update.message.reply_text(f"No movie found for '{movie_name}' in {year}.")
     else:
@@ -107,7 +107,8 @@ async def get_movie(update: Update, context: CallbackContext) -> None:
             keyboard = []
             for result in search_results['Search'][:10]:  # Limit to 10 results
                 button_text = f"{result['Title']} ({result.get('Year', 'Unknown')})"
-                keyboard.append([InlineKeyboardButton(button_text, callback_data=result['imdbID'])])
+                # Pass both imdbID and user-provided movie name as callback data
+                keyboard.append([InlineKeyboardButton(button_text, callback_data=f"{result['imdbID']}|{movie_name}")])
 
             if len(search_results['Search']) > 10:
                 keyboard.append([InlineKeyboardButton("Next", callback_data="next")])  # Next button
@@ -118,7 +119,7 @@ async def get_movie(update: Update, context: CallbackContext) -> None:
             await update.message.reply_text(f"No movies found for '{movie_name}'.")
 
 # Function to send movie post based on selected details
-async def send_movie_post(update, movie, movie_name):  # Accept movie_name
+async def send_movie_post(update, movie, movie_name):  # Accept movie_name as a parameter
     caption_format = await get_caption()
     thumbnails_disabled = await are_posters_disabled()
 
@@ -158,14 +159,16 @@ async def send_movie_post(update, movie, movie_name):  # Accept movie_name
 # CallbackQuery: handle movie selection from button list
 async def movie_selection(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
-    movie_id = query.data
+    callback_data = query.data
+    movie_id, user_movie_name = callback_data.split("|")  # Extract imdbID and movie_name from callback_data
 
     movie = requests.get(f'http://www.omdbapi.com/?i={movie_id}&apikey={OMDB_API_KEY}').json()
 
     if movie['Response'] == 'True':
-        await send_movie_post(query, movie)
+        await send_movie_post(query, movie, user_movie_name)  # Pass the movie_name along with the movie details
 
     await query.answer()
+
 
 # Command: set poster as thumbnail
 async def set_poster(update: Update, context: CallbackContext) -> None:
