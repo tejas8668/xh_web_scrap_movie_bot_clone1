@@ -3,8 +3,9 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 import urllib.parse
 
-# Get the bot token from environment variables
+# Get the bot token and port from environment variables
 TOKEN = os.getenv('BOT_TOKEN')
+PORT = int(os.getenv('PORT', '8080'))  # Default to 8080 if PORT is not set
 
 # Define the allowed domains
 ALLOWED_DOMAINS = [
@@ -40,8 +41,12 @@ def main() -> None:
     # Register the link handler
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_link))
 
-    # Start the Bot
-    app.run_polling()
+    # Run the bot using a webhook
+    app.run_webhook(
+        listen="0.0.0.0",  # Listen on all available network interfaces
+        port=PORT,
+        webhook_url=f"https://incredible-berny-toxiccdeveloperr-001e0d70.koyeb.app/{TOKEN}"  # Replace with your Koyeb app URL
+    )
 
 if __name__ == '__main__':
     main()
