@@ -57,7 +57,7 @@ def main() -> None:
     app.run_webhook(
         listen="0.0.0.0",  # Listen on all available network interfaces
         port=PORT,
-        webhook_url=f"https://your-app-name.koyeb.app/{TOKEN}"  # Replace with your Koyeb app URL
+        webhook_url=f"https://incredible-berny-toxiccdeveloperr-001e0d70.koyeb.app/{TOKEN}"  # Replace with your Koyeb app URL
     )
 
 if __name__ == '__main__':
