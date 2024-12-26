@@ -3,8 +3,8 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 import urllib.parse
 
-# Get the bot token from Replit secrets
-TOKEN = os.environ['BOT_TOKEN']
+# Get the bot token from environment variables
+TOKEN = os.getenv('BOT_TOKEN')
 
 # Define the allowed domains
 ALLOWED_DOMAINS = [
