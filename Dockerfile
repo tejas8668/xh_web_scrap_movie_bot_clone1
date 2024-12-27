@@ -1,20 +1,23 @@
-# Use an official Python runtime as a parent image
-FROM python:3.9-slim
+# Use the official Python image from the Docker Hub
+FROM python:3.11-slim
 
-# Set the working directory in the container
-WORKDIR /usr/src/app
+# Set the working directory
+WORKDIR /app
 
-# Copy the current directory contents into the container
-COPY . .
+# Copy the requirements.txt file
+COPY requirements.txt .
 
-# Install any necessary dependencies
+# Install the dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port 8080 for Flask (or any other services you need to access)
+# Copy the rest of the application code
+COPY . .
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Expose the port
 EXPOSE 8080
 
-# Define environment variable
-ENV API_TOKEN="your_telegram_bot_api_token"
-
-# Run the bot when the container launches
-CMD ["python", "./main.py"]
+# Command to run the bot
+CMD ["python", "main.py"]
