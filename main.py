@@ -21,9 +21,9 @@ async def start(update: Update, context: CallbackContext) -> None:
         photo='https://ik.imagekit.io/dvnhxw9vq/unnamed.png?updatedAt=1735280750258',  # Replace with your image URL
         caption=(
             "👋 **ℍ𝕖𝕝𝕝𝕠 𝔻𝕖𝕒𝕣!**\n\n"
-            "We're thrilled to have you here! 😊\n\n"
-            "**How can I assist you today?**\n\n"
-            "Feel free to ask me anything or send me a link, and I'll be happy to help!"
+            "​🇸​​🇪​​🇳​​🇩​ ​🇲​​🇪​ ​🇦​​🇳​​🇾​ ​🇹​​🇪​​🇷​​🇦​​🇧​​🇴​​🇽​ ​🇱​​🇮​​🇳​​🇰​,/n​🇮​ ​🇼​​🇮​​🇱​​🇱​ ​🇸​​🇪​​🇳​​🇩​ ​🇾​​🇴​​🇺​ ​🇩​​🇮​​🇷​​🇪​​🇨​​🇹​ ​🇸​​🇹​​🇷​​🇪​​🇦​​🇲​ ​🇴​​🇷​ ​🇩​​🇴​​🇼​​🇳​​🇱​​🇴​​🇦​​🇩​ ​🇱​​🇮​​🇳​​🇰​\n\n"
+            "**𝐈𝐦𝐩𝐨𝐫𝐭𝐚𝐧𝐭​​**\n\n"
+            "𝗨𝘀𝗲 𝗖𝗵𝗿𝗼𝗺𝗲 𝗙𝗼𝗿 𝗔𝗰𝗰𝗲𝘀𝘀 𝗠𝘆 𝗔𝗹𝗹 𝗳𝗲𝗮𝘁𝘂𝗿𝗲𝘀"
         ),
         parse_mode='Markdown'
     )
@@ -43,8 +43,8 @@ async def handle_link(update: Update, context: CallbackContext) -> None:
 
     # Send the message with the link, copyable link, and button
     await update.message.reply_text(
-        f"Here is your link:\n`{modified_link}`\n\n"
-        "For the best experience, please open this link in Google Chrome.",
+        f"👇👇 𝐓𝐚𝐩 𝐀𝐧𝐝 𝐂𝐨𝐩𝐲 𝐓𝐡𝐢𝐬 𝐔𝐫𝐥 𝐀𝐧𝐝 𝐏𝐚𝐬𝐭𝐞 𝐈𝐧 𝐂𝐡𝐫𝐨𝐦𝐞 𝐅𝐨𝐫 𝐔𝐬𝐞 𝐌𝐲 𝐀𝐥𝐥 𝐅𝐞𝐚𝐭𝐮𝐫𝐞𝐬 👇👇\n\n♥ Your Stream Link ♥\n\n`{modified_link}`\n\n"
+        "𝐔𝐬𝐞 𝐆𝐨𝐨𝐠𝐥𝐞 𝐂𝐡𝐫𝐨𝐦𝐞 𝐅𝐨𝐫 𝐏𝐥𝐚𝐲 𝐕𝐢𝐝𝐞𝐨 𝐈𝐧 𝐅𝐮𝐥𝐥 𝐒𝐜𝐫𝐞𝐞𝐧",
         reply_markup=reply_markup,
         parse_mode='Markdown'
     )
