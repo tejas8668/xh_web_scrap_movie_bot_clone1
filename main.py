@@ -24,7 +24,7 @@ async def handle_link(update: Update, context: CallbackContext) -> None:
     logger.info("Received message: %s", update.message.text)
     original_link = update.message.text
     parsed_link = urllib.parse.quote(original_link, safe='')
-    modified_link = f"{parsed_link}&m=0"
+    modified_link = f"https://streamterabox.blogspot.com/?q={parsed_link}&m=0"
     await update.message.reply_text(modified_link)
 
 def main() -> None:
