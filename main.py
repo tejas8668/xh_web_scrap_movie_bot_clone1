@@ -1,64 +1,42 @@
-import os
-import logging
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
-import urllib.parse
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from flask import Flask, request
+import os
 
-# Configure logging
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
+# Create a Flask app
+app = Flask(__name__)
 
-# Get the bot token, API ID, API hash, and port from environment variables
-TOKEN = os.getenv('BOT_TOKEN')
-API_ID = os.getenv('API_ID')
-API_HASH = os.getenv('API_HASH')
-PORT = int(os.getenv('PORT', '8080'))  # Default to 8080 if PORT is not set
+# Define a start command
+def start(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text('Hello! I am your simple Telegram bot. How can I help you?')
 
-# Define the allowed domains
-ALLOWED_DOMAINS = [
-    "www.mirrobox.com", "www.nephobox.com", "freeterabox.com", "www.freeterabox.com",
-    "1024tera.com", "4funbox.co", "www.4funbox.com", "mirrobox.com", "nephobox.com",
-    "terabox.app", "terabox.com", "www.terabox.app", "terabox.fun", "www.terabox.com",
-    "www.1024tera.com", "www.momerybox.com", "teraboxapp.com", "momerybox.com",
-    "tibibox.com", "www.tibibox.com", "www.teraboxapp.com"
-]
+# Define a function to handle text messages
+def echo(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text(update.message.text)
 
-# Define the /start command handler
-async def start(update: Update, context: CallbackContext) -> None:
-    logger.info("Received /start command")
-    await update.message.reply_text('Welcome! How can I assist you today?')
-
-# Define the link handler
-async def handle_link(update: Update, context: CallbackContext) -> None:
-    logger.info("Received message: %s", update.message.text)
-    original_link = update.message.text
-    domain = urllib.parse.urlparse(original_link).netloc
-    if domain in ALLOWED_DOMAINS:
-        parsed_link = urllib.parse.quote(original_link, safe='')
-        modified_link = f"{parsed_link}&m=0"
-        await update.message.reply_text(modified_link)
-    else:
-        await update.message.reply_text("This domain is not supported.")
-
+# Main function to set up the bot
 def main() -> None:
-    # Create the Application and pass it your bot's token
-    app = ApplicationBuilder().token(TOKEN).build()
+    # Replace with your bot's API token from BotFather
+    token = 'YOUR_API_TOKEN'
 
-    # Register the /start command handler
-    app.add_handler(CommandHandler("start", start))
+    # Create an Updater object and pass in the API token
+    updater = Updater(token)
 
-    # Register the link handler
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_link))
+    # Get the dispatcher to register handlers
+    dispatcher = updater.dispatcher
 
-    # Run the bot using a webhook
-    app.run_webhook(
-        listen="0.0.0.0",  # Listen on all available network interfaces
-        port=PORT,
-        webhook_url=f"https://incredible-berny-toxiccdeveloperr-001e0d70.koyeb.app/{TOKEN}"  # Replace with your Koyeb app URL
-    )
+    # Register a command handler for /start
+    dispatcher.add_handler(CommandHandler("start", start))
 
+    # Register a message handler that will echo text messages
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+
+    # Start the bot in a separate thread
+    updater.start_polling()
+
+    # Run the Flask app (this is for Koyeb to bind to port 8080)
+    app.run(host='0.0.0.0', port=8080)
+
+# If running as the main module, run the bot
 if __name__ == '__main__':
     main()
