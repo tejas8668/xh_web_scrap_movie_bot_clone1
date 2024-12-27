@@ -11,9 +11,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Get the bot token and port from environment variables
+# Get the bot token from environment variables
 TOKEN = os.getenv('BOT_TOKEN')
-PORT = int(os.getenv('PORT', '8080'))  # Default to 8080 if PORT is not set
 
 # Define the allowed domains
 ALLOWED_DOMAINS = [
@@ -42,6 +41,10 @@ async def handle_link(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("This domain is not supported.")
 
 def main() -> None:
+    # Get the port from the environment variable or use default
+    port = int(os.environ.get('PORT', 8080))  # Default to port 8080
+    webhook_url = f"https://total-jessalyn-toxiccdeveloperr-36046375.koyeb.app/{TOKEN}"  # Replace with your server URL
+
     # Create the Application and pass it your bot's token
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -53,9 +56,10 @@ def main() -> None:
 
     # Run the bot using a webhook
     app.run_webhook(
-        listen="0.0.0.0",  # Listen on all available network interfaces
-        port=PORT,
-        webhook_url=f"https://total-jessalyn-toxiccdeveloperr-36046375.koyeb.app/{TOKEN}"  # Replace with your Koyeb app URL
+        listen="0.0.0.0",
+        port=port,
+        url_path=TOKEN,
+        webhook_url=webhook_url
     )
 
 if __name__ == '__main__':
