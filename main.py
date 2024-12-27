@@ -21,7 +21,7 @@ async def start(update: Update, context: CallbackContext) -> None:
         photo='https://ik.imagekit.io/dvnhxw9vq/unnamed.png?updatedAt=1735280750258',  # Replace with your image URL
         caption=(
             "👋 **ℍ𝕖𝕝𝕝𝕠 𝔻𝕖𝕒𝕣!**\n\n"
-            "​🇸​​🇪​​🇳​​🇩​ ​🇲​​🇪​ ​🇦​​🇳​​🇾​ ​🇹​​🇪​​🇷​​🇦​​🇧​​🇴​​🇽​ ​🇱​​🇮​​🇳​​🇰​,\n​🇮​ ​🇼​​🇮​​🇱​​🇱​ ​🇸​​🇪​​🇳​​🇩​ ​🇾​​🇴​​🇺​ ​🇩​​🇮​​🇷​​🇪​​🇨​​🇹​ ​🇸​​🇹​​🇷​​🇪​​🇦​​🇲​ ​🇴​​🇷​ ​🇩​​🇴​​🇼​​🇳​​🇱​​🇴​​🇦​​🇩​ ​🇱​​🇮​​🇳​​🇰​\n\n"
+            "SEND ME ANY TERABOX LINK, I WILL SEND YOU DIRECT STREAM LINK WITHOUT TERABOX LOGIN OR ANY ADS​\n\n"
             "**𝐈𝐦𝐩𝐨𝐫𝐭𝐚𝐧𝐭​​**\n\n"
             "𝗨𝘀𝗲 𝗖𝗵𝗿𝗼𝗺𝗲 𝗙𝗼𝗿 𝗔𝗰𝗰𝗲𝘀𝘀 𝗠𝘆 𝗔𝗹𝗹 𝗳𝗲𝗮𝘁𝘂𝗿𝗲𝘀"
         ),
