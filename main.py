@@ -11,10 +11,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Get the bot token, API ID, API hash, and port from environment variables
+# Get the bot token and port from environment variables
 TOKEN = os.getenv('BOT_TOKEN')
-API_ID = os.getenv('API_ID')
-API_HASH = os.getenv('API_HASH')
 PORT = int(os.getenv('PORT', '8080'))  # Default to 8080 if PORT is not set
 
 # Define the allowed domains
@@ -57,7 +55,7 @@ def main() -> None:
     app.run_webhook(
         listen="0.0.0.0",  # Listen on all available network interfaces
         port=PORT,
-        webhook_url=f"https://total-jessalyn-toxiccdeveloperr-36046375.koyeb.app/{TOKEN}"  # Replace with your Koyeb app URL
+        webhook_url=f"https://your-app-name.koyeb.app/{TOKEN}"  # Replace with your Koyeb app URL
     )
 
 if __name__ == '__main__':
