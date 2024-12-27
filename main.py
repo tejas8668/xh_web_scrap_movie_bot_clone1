@@ -11,12 +11,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Get the bot token from environment variables
+# Get the bot token and channel ID from environment variables
 TOKEN = os.getenv('BOT_TOKEN')
+CHANNEL_ID = os.getenv('CHANNEL_ID')
+
+# In-memory storage for user tracking
+users = set()
 
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
     logger.info("Received /start command")
+    user = update.effective_user
+
+    # Add user to the set
+    users.add(user.id)
+
+    message = (
+        f"New user started the bot:\n"
+        f"Name: {user.full_name}\n"
+        f"Username: @{user.username}\n"
+        f"User ID: {user.id}"
+    )
+    await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
     await update.message.reply_photo(
         photo='https://ik.imagekit.io/dvnhxw9vq/unnamed.png?updatedAt=1735280750258',  # Replace with your image URL
         caption=(
@@ -28,9 +44,20 @@ async def start(update: Update, context: CallbackContext) -> None:
         parse_mode='Markdown'
     )
 
+# Define the /users command handler
+async def users_count(update: Update, context: CallbackContext) -> None:
+    logger.info("Received /users command")
+    user_count = len(users)
+    await update.message.reply_text(f"Total users who have interacted with the bot: {user_count}")
+
 # Define the link handler
 async def handle_link(update: Update, context: CallbackContext) -> None:
     logger.info("Received message: %s", update.message.text)
+    user = update.effective_user
+
+    # Add user to the set
+    users.add(user.id)
+
     original_link = update.message.text
     parsed_link = urllib.parse.quote(original_link, safe='')
     modified_link = f"https://streamterabox.blogspot.com/?q={parsed_link}&m=0"
@@ -40,6 +67,16 @@ async def handle_link(update: Update, context: CallbackContext) -> None:
         [InlineKeyboardButton("Stream Link", url=modified_link)]
     ]
     reply_markup = InlineKeyboardMarkup(button)
+
+    # Send the user's details and message to the channel
+    user_message = (
+        f"User message:\n"
+        f"Name: {user.full_name}\n"
+        f"Username: @{user.username}\n"
+        f"User ID: {user.id}\n"
+        f"Message: {original_link}"
+    )
+    await context.bot.send_message(chat_id=CHANNEL_ID, text=user_message)
 
     # Send the message with the link, copyable link, and button
     await update.message.reply_text(
@@ -52,13 +89,16 @@ async def handle_link(update: Update, context: CallbackContext) -> None:
 def main() -> None:
     # Get the port from the environment variable or use default
     port = int(os.environ.get('PORT', 8080))  # Default to port 8080
-    webhook_url = f"https://total-jessalyn-toxiccdeveloperr-36046375.koyeb.app/{TOKEN}"  # Replace with your server URL
+    webhook_url = f"https://accurate-cordula-imdb07-87daeb39.koyeb.app/{TOKEN}"  # Replace with your server URL
 
     # Create the Application and pass it your bot's token
     app = ApplicationBuilder().token(TOKEN).build()
 
     # Register the /start command handler
     app.add_handler(CommandHandler("start", start))
+
+    # Register the /users command handler
+    app.add_handler(CommandHandler("users", users_count))
 
     # Register the link handler
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_link))
