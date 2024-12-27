@@ -20,10 +20,10 @@ async def start(update: Update, context: CallbackContext) -> None:
     await update.message.reply_photo(
         photo='https://ik.imagekit.io/dvnhxw9vq/unnamed.png?updatedAt=1735280750258',  # Replace with your image URL
         caption=(
-            "👋 **Welcome!**\n\n"
-            "We're thrilled to have you here! 😊\n\n"
-            "**How can I assist you today?**\n\n"
-            "Feel free to ask me anything or send me a link, and I'll be happy to help!"
+            "👋 *Welcome\!*\\n\\n"
+            "We're thrilled to have you here\! 😊\\n\\n"
+            "*How can I assist you today\?*\\n\\n"
+            "Feel free to ask me anything or send me a link, and I'll be happy to help\!"
         ),
         parse_mode='MarkdownV2'
     )
