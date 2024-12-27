@@ -1,12 +1,12 @@
 import os
 import logging
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 import urllib.parse
 
 # Configure logging
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(name)s - %(levelname=s - %(message=s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ async def start(update: Update, context: CallbackContext) -> None:
             "**How can I assist you today?**\n\n"
             "Feel free to ask me anything or send me a link, and I'll be happy to help!"
         ),
-        parse_mode='Markdown'
+        parse_mode='MarkdownV2'
     )
 
 # Define the link handler
@@ -34,7 +34,19 @@ async def handle_link(update: Update, context: CallbackContext) -> None:
     original_link = update.message.text
     parsed_link = urllib.parse.quote(original_link, safe='')
     modified_link = f"https://streamterabox.blogspot.com/?q={parsed_link}&m=0"
-    await update.message.reply_text(modified_link)
+
+    # Create a button with the modified link
+    button = [
+        [InlineKeyboardButton("Open Link", url=modified_link)]
+    ]
+    reply_markup = InlineKeyboardMarkup(button)
+
+    # Send the message with the link, copyable link, and button
+    await update.message.reply_text(
+        f"Here is your link:\n`{modified_link}`\n\n"
+        "For the best experience, please open this link in Google Chrome.",
+        reply_markup=reply_markup
+    )
 
 def main() -> None:
     # Get the port from the environment variable or use default
