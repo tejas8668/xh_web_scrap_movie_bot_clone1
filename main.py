@@ -37,7 +37,7 @@ async def handle_link(update: Update, context: CallbackContext) -> None:
 
     # Create a button with the modified link
     button = [
-        [InlineKeyboardButton("Open Link", url=modified_link)]
+        [InlineKeyboardButton("Stream Link", url=modified_link)]
     ]
     reply_markup = InlineKeyboardMarkup(button)
 
