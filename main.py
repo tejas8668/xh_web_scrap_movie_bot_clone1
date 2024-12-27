@@ -1,9 +1,9 @@
+import os
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-from flask import Flask, request
-import os
+from flask import Flask
 
-# Create a Flask app
+# Create a Flask app (Koyeb expects an HTTP server to run)
 app = Flask(__name__)
 
 # Define a start command
@@ -16,8 +16,12 @@ def echo(update: Update, context: CallbackContext) -> None:
 
 # Main function to set up the bot
 def main() -> None:
-    # Replace with your bot's API token from BotFather
-    token = 'YOUR_API_TOKEN'
+    # Get the bot's API token from the environment variables
+    token = os.getenv('API_TOKEN')  # Fetch the token from environment variables
+
+    if not token:
+        print("API_TOKEN not set in environment variables!")
+        return
 
     # Create an Updater object and pass in the API token
     updater = Updater(token)
@@ -31,7 +35,7 @@ def main() -> None:
     # Register a message handler that will echo text messages
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
 
-    # Start the bot in a separate thread
+    # Start the bot in a separate thread (this will run the bot)
     updater.start_polling()
 
     # Run the Flask app (this is for Koyeb to bind to port 8080)
