@@ -1,6 +1,6 @@
 import os
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext
 from flask import Flask
 
 # Create a Flask app (Koyeb expects an HTTP server to run)
@@ -33,7 +33,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("start", start))
 
     # Register a message handler that will echo text messages
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+    dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
     # Start the bot in a separate thread (this will run the bot)
     updater.start_polling()
