@@ -17,7 +17,17 @@ TOKEN = os.getenv('BOT_TOKEN')
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
     logger.info("Received /start command")
-    await update.message.reply_text('Welcome! How can I assist you today?')
+    await update.message.reply_photo(
+        photo='https://telegra.ph/file/your-image-url.jpg',  # Replace with your image URL
+        caption=(
+            "👋 **Welcome!**\n\n"
+            "We're thrilled to have you here! 😊\n\n"
+            "**How can I assist you today?**\n\n"
+            "Feel free to ask me anything or send me a link, and I'll be happy to help!"
+        ),
+        parse_mode='Markdown'
+    )
+
 
 # Define the link handler
 async def handle_link(update: Update, context: CallbackContext) -> None:
