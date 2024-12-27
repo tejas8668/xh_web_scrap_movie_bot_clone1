@@ -18,7 +18,7 @@ TOKEN = os.getenv('BOT_TOKEN')
 async def start(update: Update, context: CallbackContext) -> None:
     logger.info("Received /start command")
     await update.message.reply_photo(
-        photo='https://imagekit.io/public/share/dvnhxw9vq/a01cc049a6db58f714077cbdb90e2e8be32f8e6c9ead0ff79e9154cd1aaf39f4932ba709c829f5dfe7702c96f2de6d4cabfa176dc039e51b4990ff138871f8f555385b2bb40e278fa8b7f9f3afd237b5',  # Replace with your image URL
+        photo='https://ik.imagekit.io/dvnhxw9vq/unnamed.png?updatedAt=1735280750258',  # Replace with your image URL
         caption=(
             "👋 **Welcome!**\n\n"
             "We're thrilled to have you here! 😊\n\n"
