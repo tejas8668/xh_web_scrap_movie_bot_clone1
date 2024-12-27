@@ -6,7 +6,7 @@ import urllib.parse
 
 # Configure logging
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname=s - %(message=s',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ async def handle_link(update: Update, context: CallbackContext) -> None:
 
     # Send the message with the link, copyable link, and button
     await update.message.reply_text(
-        f"Here is your link:\n`{modified_link}`\n\n"
+        f"Here is your link:\n{modified_link}\n\n"
         "For the best experience, please open this link in Google Chrome.",
         reply_markup=reply_markup
     )
