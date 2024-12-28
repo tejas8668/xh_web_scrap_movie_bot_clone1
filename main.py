@@ -59,32 +59,38 @@ async def handle_link(update: Update, context: CallbackContext) -> None:
     users.add(user.id)
 
     original_link = update.message.text
-    parsed_link = urllib.parse.quote(original_link, safe='')
-    modified_link = f"https://streamterabox.blogspot.com/?q={parsed_link}&m=0"
 
-    # Create a button with the modified link
-    button = [
-        [InlineKeyboardButton("Stream Link", url=modified_link)]
-    ]
-    reply_markup = InlineKeyboardMarkup(button)
+    # Check if the message contains an http or https link
+    if 'http://' in original_link or 'https://' in original_link:
+        parsed_link = urllib.parse.quote(original_link, safe='')
+        modified_link = f"https://streamterabox.blogspot.com/?q={parsed_link}&m=0"
+        modified_url = f"https://streamterabox.blogspot.com/2024/12/terabox-player.html?q={parsed_link}"
 
-    # Send the user's details and message to the channel
-    user_message = (
-        f"User message:\n"
-        f"Name: {user.full_name}\n"
-        f"Username: @{user.username}\n"
-        f"User ID: {user.id}\n"
-        f"Message: {original_link}"
-    )
-    await context.bot.send_message(chat_id=CHANNEL_ID, text=user_message)
+        # Create a button with the modified link
+        button = [
+            [InlineKeyboardButton("Stream Server 1", url=modified_link)],
+            [InlineKeyboardButton("Stream Server 2", url=modified_url)]
+        ]
+        reply_markup = InlineKeyboardMarkup(button)
 
-    # Send the message with the link, copyable link, and button
-    await update.message.reply_text(
-        f"👇👇 𝐓𝐚𝐩 𝐀𝐧𝐝 𝐂𝐨𝐩𝐲 𝐓𝐡𝐢𝐬 𝐔𝐫𝐥 𝐀𝐧𝐝 𝐏𝐚𝐬𝐭𝐞 𝐈𝐧 𝐂𝐡𝐫𝐨𝐦𝐞 𝐅𝐨𝐫 𝐔𝐬𝐞 𝐌𝐲 𝐀𝐥𝐥 𝐅𝐞𝐚𝐭𝐮𝐫𝐞𝐬 👇👇\n\n♥ Your Stream Link ♥\n\n`{modified_link}`\n\n"
-        "𝐔𝐬𝐞 𝐆𝐨𝐨𝐠𝐥𝐞 𝐂𝐡𝐫𝐨𝐦𝐞 𝐅𝐨𝐫 𝐏𝐥𝐚𝐲 𝐕𝐢𝐝𝐞𝐨 𝐈𝐧 𝐅𝐮𝐥𝐥 𝐒𝐜𝐫𝐞𝐞𝐧",
-        reply_markup=reply_markup,
-        parse_mode='Markdown'
-    )
+        # Send the user's details and message to the channel
+        user_message = (
+            f"User message:\n"
+            f"Name: {user.full_name}\n"
+            f"Username: @{user.username}\n"
+            f"User ID: {user.id}\n"
+            f"Message: {original_link}"
+        )
+        await context.bot.send_message(chat_id=CHANNEL_ID, text=user_message)
+
+        # Send the message with the link, copyable link, and button
+        await update.message.reply_text(
+            f"👇👇 YOUR VIDEO LINK IS READY, USE THESE SERVERS 👇👇\n\n♥ 👇Your Stream Link👇 ♥\n",
+            reply_markup=reply_markup,
+            parse_mode='Markdown'
+        )
+    else:
+        await update.message.reply_text("Please send Me Only TeraBox Link.")
 
 def main() -> None:
     # Get the port from the environment variable or use default
