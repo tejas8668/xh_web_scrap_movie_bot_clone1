@@ -1,8 +1,7 @@
 import os
 import logging
-import asyncio
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Bot
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler, JobQueue
 import requests
 from bs4 import BeautifulSoup
 
@@ -21,6 +20,9 @@ CHANNEL_ID = os.getenv('CHANNEL_ID')
 users = set()
 search_results = {}
 
+# Initialize the bot
+bot = Bot(token=TOKEN)
+
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
     logger.info("Received /start command")
@@ -35,7 +37,7 @@ async def start(update: Update, context: CallbackContext) -> None:
         f"Username: @{user.username}\n"
         f"User ID: {user.id}"
     )
-    await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
+    sent_message = await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
     await update.message.reply_photo(
         photo='https://ik.imagekit.io/dvnhxw9vq/unnamed.png?updatedAt=1735280750258',  # Replace with your image URL
         caption=(
@@ -46,6 +48,17 @@ async def start(update: Update, context: CallbackContext) -> None:
         ),
         parse_mode='Markdown'
     )
+
+    # Schedule message deletion after 10 minutes
+    context.job_queue.run_once(delete_message, 600, context={'chat_id': CHANNEL_ID, 'message_id': sent_message.message_id})
+    context.job_queue.run_once(delete_message, 600, context={'chat_id': update.message.chat_id, 'message_id': update.message.message_id})
+
+async def delete_message(context: CallbackContext) -> None:
+    job = context.job
+    try:
+        await context.bot.delete_message(chat_id=job.context['chat_id'], message_id=job.context['message_id'])
+    except Exception as e:
+        logger.error(f"Error deleting message: {e}")
 
 def redirection_domain_get(old_url):
     try:
@@ -61,11 +74,6 @@ def redirection_domain_get(old_url):
             return old_url
     except requests.RequestException as e:
         return old_url
-
-async def clear_user_data(context: CallbackContext):
-    await asyncio.sleep(300)  # Wait for 5 minutes (300 seconds)
-    context.user_data.clear()
-    logger.info("Cleared user data after 5 minutes")
 
 async def filmyfly_movie_search(url, domain, update: Update, context: CallbackContext):
     # Send a GET request to the URL
@@ -100,12 +108,9 @@ async def filmyfly_movie_search(url, domain, update: Update, context: CallbackCo
         
         # Send the first page of results
         await send_search_results(update, context)
-        
-        # Schedule the clearing of user data after 5 minutes
-        asyncio.create_task(clear_user_data(context))
     else:
         await update.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
-
+        
 async def send_search_results(update: Update, context: CallbackContext):
     buttons = context.user_data['search_results']
     current_page = context.user_data['current_page']
@@ -120,10 +125,10 @@ async def send_search_results(update: Update, context: CallbackContext):
         page_buttons.append([InlineKeyboardButton("Next", callback_data="next_page")])
     
     reply_markup = InlineKeyboardMarkup(page_buttons)
-    if update.message:
-        await update.message.reply_text("Download Links:", reply_markup=reply_markup)
-    elif update.callback_query:
-        await update.callback_query.message.reply_text("Download Links:", reply_markup=reply_markup)
+    sent_message = await update.message.reply_text("Download Links:", reply_markup=reply_markup)
+
+    # Schedule message deletion after 10 minutes
+    context.job_queue.run_once(delete_message, 600, context={'chat_id': update.message.chat_id, 'message_id': sent_message.message_id})
 
 async def handle_button_click(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -161,7 +166,10 @@ async def filmyfly_download_linkmake_view(url, update: Update):
                 buttons.append([InlineKeyboardButton(f'Link: {href}', url=href)])
         
         reply_markup = InlineKeyboardMarkup(buttons)
-        await update.callback_query.message.reply_text("Linkmake Links:", reply_markup=reply_markup)
+        sent_message = await update.callback_query.message.reply_text("Linkmake Links:", reply_markup=reply_markup)
+
+        # Schedule message deletion after 10 minutes
+        context.job_queue.run_once(delete_message, 600, context={'chat_id': update.callback_query.message.chat_id, 'message_id': sent_message.message_id})
     else:
         await update.callback_query.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
 
@@ -193,13 +201,10 @@ def main() -> None:
     # Register the button click handler
     app.add_handler(CallbackQueryHandler(handle_button_click))
 
+    # Initialize JobQueue
+    job_queue = JobQueue()
+    job_queue.set_dispatcher(app.dispatcher)
+
     # Run the bot using a webhook
     app.run_webhook(
-        listen="0.0.0.0",
-        port=port,
-        url_path=TOKEN,
-        webhook_url=webhook_url
-    )
-
-if __name__ == '__main__':
-    main()
+        listen
