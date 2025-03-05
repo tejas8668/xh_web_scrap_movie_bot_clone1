@@ -78,11 +78,13 @@ async def filmyfly_movie_search(url, domain, update: Update, context: CallbackCo
         buttons = []
         
         # Extract and print the href attributes
-        for link in download_links:
+        for i, link in enumerate(download_links):
             href = link.get('href')
             if href and href not in unique_links:
                 unique_links.add(href)
-                buttons.append(InlineKeyboardButton(f'Link: {domain}{href}', callback_data=f'{domain}{href}'))
+                callback_data = f'link_{i}'
+                context.user_data[callback_data] = f'{domain}{href}'
+                buttons.append(InlineKeyboardButton(f'Link: {domain}{href}', callback_data=callback_data))
         
         # Store the search results in the context
         context.user_data['search_results'] = buttons
@@ -117,7 +119,9 @@ async def handle_button_click(update: Update, context: CallbackContext):
         context.user_data['current_page'] += 1
         await send_search_results(update, context)
     else:
-        await filmyfly_download_linkmake_view(query.data, update)
+        url = context.user_data.get(query.data)
+        if url:
+            await filmyfly_download_linkmake_view(url, update)
 
 async def filmyfly_download_linkmake_view(url, update: Update):
     # Send a GET request to the URL
