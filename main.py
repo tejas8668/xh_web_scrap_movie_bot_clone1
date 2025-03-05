@@ -146,7 +146,7 @@ async def filmyfly_download_linkmake_view(url, update: Update):
     response = requests.get(url)
 
     # Check if the request was successful
-    if response.status_code == 200):
+    if response.status_code == 200:
         # Parse the HTML content
         soup = BeautifulSoup(response.text, 'html.parser')
         
