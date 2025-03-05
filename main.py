@@ -64,7 +64,7 @@ def redirection_domain_get(old_url):
 def delete_message(context: CallbackContext) -> None:
     job = context.job
     try:
-        context.bot.delete_message(chat_id=job.context['chat_id'], message_id=job.context['message_id'])
+        context.bot.delete_message(chat_id=job.data['chat_id'], message_id=job.data['message_id'])
     except Exception as e:
         logger.error(f"Failed to delete message: {e}")
 
@@ -127,7 +127,7 @@ async def send_search_results(update: Update, context: CallbackContext):
         sent_message = await update.callback_query.message.reply_text("Download Links:", reply_markup=reply_markup)
     
     # Schedule the deletion of the message after 10 minutes (600 seconds)
-    context.job_queue.run_once(delete_message, 600, context={'chat_id': sent_message.chat_id, 'message_id': sent_message.message_id})
+    context.job_queue.run_once(delete_message, 600, data={'chat_id': sent_message.chat_id, 'message_id': sent_message.message_id})
 
 async def handle_button_click(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -139,9 +139,9 @@ async def handle_button_click(update: Update, context: CallbackContext):
     else:
         url = context.user_data.get(query.data)
         if url:
-            await filmyfly_download_linkmake_view(url, update)
+            await filmyfly_download_linkmake_view(url, update, context)
 
-async def filmyfly_download_linkmake_view(url, update: Update):
+async def filmyfly_download_linkmake_view(url, update: Update, context: CallbackContext):
     # Send a GET request to the URL
     response = requests.get(url)
 
@@ -168,7 +168,7 @@ async def filmyfly_download_linkmake_view(url, update: Update):
         sent_message = await update.callback_query.message.reply_text("Linkmake Links:", reply_markup=reply_markup)
         
         # Schedule the deletion of the message after 10 minutes (600 seconds)
-        context.job_queue.run_once(delete_message, 600, context={'chat_id': sent_message.chat_id, 'message_id': sent_message.message_id})
+        context.job_queue.run_once(delete_message, 600, data={'chat_id': sent_message.chat_id, 'message_id': sent_message.message_id})
     else:
         await update.callback_query.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
 
