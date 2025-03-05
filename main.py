@@ -84,7 +84,9 @@ async def filmyfly_movie_search(url, domain, update: Update, context: CallbackCo
                 unique_links.add(href)
                 callback_data = f'link_{i}'
                 context.user_data[callback_data] = f'{domain}{href}'
-                buttons.append([InlineKeyboardButton(f'Link: {domain}{href}', callback_data=callback_data)])
+                # Extract the last part of the URL for the button title
+                button_title = href.split('/')[-1]
+                buttons.append([InlineKeyboardButton(button_title, callback_data=callback_data)])
         
         # Store the search results in the context
         context.user_data['search_results'] = buttons
@@ -94,7 +96,7 @@ async def filmyfly_movie_search(url, domain, update: Update, context: CallbackCo
         await send_search_results(update, context)
     else:
         await update.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
-
+        
 async def send_search_results(update: Update, context: CallbackContext):
     buttons = context.user_data['search_results']
     current_page = context.user_data['current_page']
