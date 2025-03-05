@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 # Configure logging
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(name)s - %(levelname=s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ async def filmyfly_movie_search(url, domain, update: Update, context: CallbackCo
                 unique_links.add(href)
                 callback_data = f'link_{i}'
                 context.user_data[callback_data] = f'{domain}{href}'
-                buttons.append(InlineKeyboardButton(f'Link: {domain}{href}', callback_data=callback_data))
+                buttons.append([InlineKeyboardButton(f'Link: {domain}{href}', callback_data=callback_data)])
         
         # Store the search results in the context
         context.user_data['search_results'] = buttons
@@ -106,9 +106,9 @@ async def send_search_results(update: Update, context: CallbackContext):
     
     # Add a "Next" button if there are more results
     if end < len(buttons):
-        page_buttons.append(InlineKeyboardButton("Next", callback_data="next_page"))
+        page_buttons.append([InlineKeyboardButton("Next", callback_data="next_page")])
     
-    reply_markup = InlineKeyboardMarkup([page_buttons])
+    reply_markup = InlineKeyboardMarkup(page_buttons)
     await update.message.reply_text("Download Links:", reply_markup=reply_markup)
 
 async def handle_button_click(update: Update, context: CallbackContext):
@@ -147,9 +147,9 @@ async def filmyfly_download_linkmake_view(url, update: Update):
                 buttons.append([InlineKeyboardButton(f'Link: {href}', url=href)])
         
         reply_markup = InlineKeyboardMarkup(buttons)
-        await update.message.reply_text("Linkmake Links:", reply_markup=reply_markup)
+        await update.callback_query.message.reply_text("Linkmake Links:", reply_markup=reply_markup)
     else:
-        await update.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
+        await update.callback_query.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
 
 async def filmyfly_scraping(update: Update, context: CallbackContext):
     # Fetch download links
