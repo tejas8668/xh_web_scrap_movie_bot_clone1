@@ -68,7 +68,7 @@ def delete_message(context: CallbackContext) -> None:
     except Exception as e:
         logger.error(f"Failed to delete message: {e}")
 
-async def filmyfly_movie_search(url, domain, update: Update, context: CallbackContext):
+async def filmyfly_movie_search(url, domain, update: Update, context: CallbackContext, searching_message_id: int):
     # Send a GET request to the URL
     response = requests.get(url)
 
@@ -98,6 +98,9 @@ async def filmyfly_movie_search(url, domain, update: Update, context: CallbackCo
         # Store the search results in the context
         context.user_data['search_results'] = buttons
         context.user_data['current_page'] = 0
+        
+        # Delete the "Searching..." message
+        await context.bot.delete_message(chat_id=update.message.chat_id, message_id=searching_message_id)
         
         # Send the first page of results
         await send_search_results(update, context)
@@ -170,6 +173,9 @@ async def filmyfly_download_linkmake_view(url, update: Update):
         await update.callback_query.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
 
 async def filmyfly_scraping(update: Update, context: CallbackContext):
+    # Send a "Searching..." message
+    searching_message = await update.message.reply_text("Searching...")
+    
     # Fetch download links
     filmyflyurl = update.message.text
     if not filmyflyurl:
@@ -178,7 +184,7 @@ async def filmyfly_scraping(update: Update, context: CallbackContext):
 
     filmyfly_domain = redirection_domain_get("https://filmyfly.esq")
     filmyfly_final = f"{filmyfly_domain}site-1.html?to-search={filmyflyurl}"
-    await filmyfly_movie_search(filmyfly_final, filmyfly_domain, update, context)
+    await filmyfly_movie_search(filmyfly_final, filmyfly_domain, update, context, searching_message.message_id)
 
 def main() -> None:
     # Get the port from the environment variable or use default
