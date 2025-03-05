@@ -117,7 +117,7 @@ async def handle_button_click(update: Update, context: CallbackContext):
     
     if query.data == "next_page":
         context.user_data['current_page'] += 1
-        await send_search_results(update, context)
+        await send_search_results(update.callback_query.message, context)
     else:
         url = context.user_data.get(query.data)
         if url:
