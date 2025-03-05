@@ -109,7 +109,10 @@ async def send_search_results(update: Update, context: CallbackContext):
         page_buttons.append([InlineKeyboardButton("Next", callback_data="next_page")])
     
     reply_markup = InlineKeyboardMarkup(page_buttons)
-    await update.reply_text("Download Links:", reply_markup=reply_markup)
+    if update.message:
+        await update.message.reply_text("Download Links:", reply_markup=reply_markup)
+    elif update.callback_query:
+        await update.callback_query.message.reply_text("Download Links:", reply_markup=reply_markup)
 
 async def handle_button_click(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -117,7 +120,7 @@ async def handle_button_click(update: Update, context: CallbackContext):
     
     if query.data == "next_page":
         context.user_data['current_page'] += 1
-        await send_search_results(query.message, context)
+        await send_search_results(query, context)
     else:
         url = context.user_data.get(query.data)
         if url:
