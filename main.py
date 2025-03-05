@@ -206,5 +206,13 @@ def main() -> None:
     job_queue.set_dispatcher(app.dispatcher)
 
     # Run the bot using a webhook
+        # Run the bot using a webhook
     app.run_webhook(
-        listen
+        listen="0.0.0.0",
+        port=port,
+        url_path=TOKEN,
+        webhook_url=webhook_url
+    )
+
+if __name__ == '__main__':
+    main()
