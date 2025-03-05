@@ -1,5 +1,6 @@
 import os
 import logging
+import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler
 import requests
@@ -61,6 +62,11 @@ def redirection_domain_get(old_url):
     except requests.RequestException as e:
         return old_url
 
+async def clear_user_data(context: CallbackContext):
+    await asyncio.sleep(300)  # Wait for 5 minutes (300 seconds)
+    context.user_data.clear()
+    logger.info("Cleared user data after 5 minutes")
+
 async def filmyfly_movie_search(url, domain, update: Update, context: CallbackContext):
     # Send a GET request to the URL
     response = requests.get(url)
@@ -94,9 +100,12 @@ async def filmyfly_movie_search(url, domain, update: Update, context: CallbackCo
         
         # Send the first page of results
         await send_search_results(update, context)
+        
+        # Schedule the clearing of user data after 5 minutes
+        asyncio.create_task(clear_user_data(context))
     else:
         await update.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
-        
+
 async def send_search_results(update: Update, context: CallbackContext):
     buttons = context.user_data['search_results']
     current_page = context.user_data['current_page']
