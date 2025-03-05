@@ -2,7 +2,8 @@ import os
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
-import urllib.parse
+import requests
+from bs4 import BeautifulSoup
 
 # Configure logging
 logging.basicConfig(
@@ -44,53 +45,92 @@ async def start(update: Update, context: CallbackContext) -> None:
         parse_mode='Markdown'
     )
 
-# Define the /users command handler
-async def users_count(update: Update, context: CallbackContext) -> None:
-    logger.info("Received /users command")
-    user_count = len(users)
-    await update.message.reply_text(f"Total users who have interacted with the bot: {user_count}")
+def redirection_domain_get(old_url):
+    try:
+        # Send a GET request to the old URL and allow redirects
+        response = requests.get(old_url, allow_redirects=True)
+        
+        # Check if the request was successful
+        if response.status_code == 200:
+            # Extract the final URL after redirection
+            new_url = response.url
+            return new_url
+        else:
+            return old_url
+    except requests.RequestException as e:
+        return old_url
 
-# Define the link handler
-async def handle_link(update: Update, context: CallbackContext) -> None:
-    logger.info("Received message: %s", update.message.text)
-    user = update.effective_user
+async def filmyfly_movie_search(url, domain, update: Update):
+    # Send a GET request to the URL
+    response = requests.get(url)
 
-    # Add user to the set
-    users.add(user.id)
-
-    original_link = update.message.text
-
-    # Check if the message contains an http or https link
-    if 'http://' in original_link or 'https://' in original_link:
-        parsed_link = urllib.parse.quote(original_link, safe='')
-        modified_link = f"https://streamterabox.blogspot.com/?q={parsed_link}&m=0"
-        modified_url = f"https://streamterabox.blogspot.com/2024/12/terabox-player.html?q={parsed_link}"
-
-        # Create a button with the modified link
-        button = [
-            [InlineKeyboardButton("Stream Server 1", url=modified_link)],
-            [InlineKeyboardButton("Stream Server 2", url=modified_url)]
-        ]
-        reply_markup = InlineKeyboardMarkup(button)
-
-        # Send the user's details and message to the channel
-        user_message = (
-            f"User message:\n"
-            f"Name: {user.full_name}\n"
-            f"Username: @{user.username}\n"
-            f"User ID: {user.id}\n"
-            f"Message: {original_link}"
-        )
-        await context.bot.send_message(chat_id=CHANNEL_ID, text=user_message)
-
-        # Send the message with the link, copyable link, and button
-        await update.message.reply_text(
-            f"👇👇 YOUR VIDEO LINK IS READY, USE THESE SERVERS 👇👇\n\n♥ 👇Your Stream Link👇 ♥\n",
-            reply_markup=reply_markup,
-            parse_mode='Markdown'
-        )
+    # Check if the request was successful
+    if response.status_code == 200:
+        # Parse the HTML content
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Find all <a> tags with href containing '/page-download/'
+        download_links = soup.find_all('a', href=lambda href: href and '/page-download/' in href)
+        
+        # Use a set to store unique links
+        unique_links = set()
+        buttons = []
+        
+        # Extract and print the href attributes
+        for link in download_links:
+            href = link.get('href')
+            if href and href not in unique_links:
+                unique_links.add(href)
+                buttons.append([InlineKeyboardButton(f'Link: {domain}{href}', url=f'{domain}{href}')])
+        
+        reply_markup = InlineKeyboardMarkup(buttons)
+        await update.message.reply_text("Download Links:", reply_markup=reply_markup)
     else:
-        await update.message.reply_text("Please send Me Only TeraBox Link.")
+        await update.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
+
+async def filmyfly_download_linkmake_view(url, update: Update):
+    # Send a GET request to the URL
+    response = requests.get(url)
+
+    # Check if the request was successful
+    if response.status_code == 200:
+        # Parse the HTML content
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Find all <a> tags with href containing 'https://linkmake.in/view'
+        linkmake_links = soup.find_all('a', href=lambda href: href and 'https://linkmake.in/view' in href)
+        
+        # Use a set to store unique links
+        unique_links = set()
+        buttons = []
+        
+        # Extract and print the href attributes
+        for link in linkmake_links:
+            href = link.get('href')
+            if href and href not in unique_links:
+                unique_links.add(href)
+                buttons.append([InlineKeyboardButton(f'Link: {href}', url=href)])
+        
+        reply_markup = InlineKeyboardMarkup(buttons)
+        await update.message.reply_text("Linkmake Links:", reply_markup=reply_markup)
+    else:
+        await update.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
+
+async def filmyfly_scraping(update: Update, context: CallbackContext):
+    # Fetch download links
+    filmyflyurl = context.args[0] if context.args else ''
+    if not filmyflyurl:
+        await update.message.reply_text("Please provide a URL to fetch download links.")
+        return
+
+    filmyfly_domain = redirection_domain_get("https://filmyfly.esq")
+    filmyfly_final = f"{filmyfly_domain}site-1.html?to-search={filmyflyurl}"
+    await filmyfly_movie_search(filmyfly_final, filmyfly_domain, update)
+    
+    # Fetch linkmake links
+    filmyfly_link = context.args[1] if len(context.args) > 1 else ''
+    if filmyfly_link:
+        await filmyfly_download_linkmake_view(filmyfly_link, update)
 
 def main() -> None:
     # Get the port from the environment variable or use default
@@ -103,11 +143,8 @@ def main() -> None:
     # Register the /start command handler
     app.add_handler(CommandHandler("start", start))
 
-    # Register the /users command handler
-    app.add_handler(CommandHandler("users", users_count))
-
     # Register the link handler
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_link))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, filmyfly_scraping))
 
     # Run the bot using a webhook
     app.run_webhook(
