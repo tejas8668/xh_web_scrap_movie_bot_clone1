@@ -1,7 +1,7 @@
 import os
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler, JobQueue, Job
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler, JobQueue
 import requests
 from bs4 import BeautifulSoup
 
@@ -146,7 +146,7 @@ async def filmyfly_download_linkmake_view(url, update: Update):
     response = requests.get(url)
 
     # Check if the request was successful
-    if response.status_code == 200:
+    if response.status_code == 200):
         # Parse the HTML content
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -193,11 +193,6 @@ def main() -> None:
 
     # Create the Application and pass it your bot's token
     app = ApplicationBuilder().token(TOKEN).build()
-
-    # Initialize the JobQueue
-    job_queue = JobQueue()
-    job_queue.set_application(app)
-    app.job_queue = job_queue
 
     # Register the /start command handler
     app.add_handler(CommandHandler("start", start))
