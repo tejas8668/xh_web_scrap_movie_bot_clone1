@@ -1,5 +1,6 @@
 import os
 import logging
+import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler
 import requests
@@ -101,7 +102,7 @@ async def filmyfly_movie_search(url, domain, update: Update, context: CallbackCo
         await update.message.reply_text(f"Failed to retrieve the webpage. Error: {e}")
     except Exception as e:
         await update.message.reply_text(f"An unexpected error occurred. Error: {e}")
-        
+
 async def send_search_results(update: Update, context: CallbackContext):
     buttons = context.user_data['search_results']
     current_page = context.user_data['current_page']
@@ -135,14 +136,14 @@ async def handle_button_click(update: Update, context: CallbackContext):
     else:
         url = context.user_data.get(query.data)
         if url:
-            await filmyfly_download_linkmake_view(url, update)
+            await filmyfly_download_linkmake_view(url, update, context)
 
-async def filmyfly_download_linkmake_view(url, update: Update):
-    # Send a GET request to the URL
-    response = requests.get(url)
+async def filmyfly_download_linkmake_view(url, update: Update, context: CallbackContext):
+    try:
+        # Send a GET request to the URL
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for HTTP errors
 
-    # Check if the request was successful
-    if response.status_code == 200:
         # Parse the HTML content
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -161,9 +162,13 @@ async def filmyfly_download_linkmake_view(url, update: Update):
                 buttons.append([InlineKeyboardButton(f'Link: {href}', url=href)])
         
         reply_markup = InlineKeyboardMarkup(buttons)
-        await update.callback_query.message.reply_text("Download Link:", reply_markup=reply_markup)
-    else:
-        await update.callback_query.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
+        del_msg = await update.callback_query.message.reply_text("Download Link:", reply_markup=reply_markup)
+        await asyncio.sleep(120)
+        await del_msg.delete()
+    except requests.RequestException as e:
+        await update.callback_query.message.reply_text(f"Failed to retrieve the webpage. Error: {e}")
+    except Exception as e:
+        await update.callback_query.message.reply_text(f"An unexpected error occurred. Error: {e}")
 
 async def filmyfly_scraping(update: Update, context: CallbackContext):
     # Send a "Searching..." message
