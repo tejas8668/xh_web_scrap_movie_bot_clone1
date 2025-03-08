@@ -61,22 +61,22 @@ def redirection_domain_get(old_url):
     except requests.RequestException as e:
         return old_url
 
-async def filmyfly_movie_search(url, domain, update: Update, context: CallbackContext):
-    # Send a GET request to the URL
-    response = requests.get(url)
+async def filmyfly_movie_search(url, domain, update: Update, context: CallbackContext, searching_message_id: int):
+    try:
+        # Send a GET request to the URL
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for HTTP errors
 
-    # Check if the request was successful
-    if response.status_code == 200:
         # Parse the HTML content
         soup = BeautifulSoup(response.text, 'html.parser')
-        
+
         # Find all <a> tags with href containing '/page-download/'
         download_links = soup.find_all('a', href=lambda href: href and '/page-download/' in href)
-        
+
         # Use a set to store unique links
         unique_links = set()
         buttons = []
-        
+
         # Extract and print the href attributes
         for i, link in enumerate(download_links):
             href = link.get('href')
@@ -87,15 +87,20 @@ async def filmyfly_movie_search(url, domain, update: Update, context: CallbackCo
                 # Extract the last part of the URL for the button title
                 button_title = href.split('/')[-1]
                 buttons.append([InlineKeyboardButton(button_title, callback_data=callback_data)])
-        
+
         # Store the search results in the context
         context.user_data['search_results'] = buttons
         context.user_data['current_page'] = 0
-        
+
+        # Delete the "Searching..." message
+        await context.bot.delete_message(chat_id=update.message.chat_id, message_id=searching_message_id)
+
         # Send the first page of results
         await send_search_results(update, context)
-    else:
-        await update.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
+    except requests.RequestException as e:
+        await update.message.reply_text(f"Failed to retrieve the webpage. Error: {e}")
+    except Exception as e:
+        await update.message.reply_text(f"An unexpected error occurred. Error: {e}")
         
 async def send_search_results(update: Update, context: CallbackContext):
     buttons = context.user_data['search_results']
