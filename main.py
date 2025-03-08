@@ -1,10 +1,10 @@
 import os
 import logging
+import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler
 import requests
 from bs4 import BeautifulSoup
-import asyncio
 
 # Configure logging
 logging.basicConfig(
@@ -40,9 +40,9 @@ async def start(update: Update, context: CallbackContext) -> None:
         photo='https://ik.imagekit.io/dvnhxw9vq/movie_bot.png?updatedAt=1741412177209',  # Replace with your image URL
         caption=(
             "👋 **ℍ𝕖𝕝𝕝𝕠 𝔻𝕖𝕒𝕣!**\n\n"
-            "I am advance movie search bot, Just send me any movie name and i will give you dirct download link of any movie.​\n\n"
+            "I am an advanced movie search bot. Just send me any movie name and I will give you a direct download link of any movie.​\n\n"
             "**𝐈𝐦𝐩𝐨𝐫𝐭𝐚𝐧𝐭​​**\n\n"
-            "Please search correct spelling for better results"
+            "Please search with the correct spelling for better results."
         ),
         parse_mode='Markdown'
     )
@@ -192,7 +192,7 @@ async def filmyfly_scraping(update: Update, context: CallbackContext):
         await update.message.reply_text("Search Any Movie With Correct Spelling To Download")
         return
 
-    filmyfly_domain = redirection_domain_get("https://filmyfly.fi")
+    filmyfly_domain = redirection_domain_get("https://filmyfly.esq")
     filmyfly_final = f"{filmyfly_domain}site-1.html?to-search={filmyflyurl}"
     await filmyfly_movie_search(filmyfly_final, filmyfly_domain, update, context, searching_message.message_id)
 
