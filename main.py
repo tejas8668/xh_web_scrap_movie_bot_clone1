@@ -77,7 +77,7 @@ async def filmyfly_movie_search(url, domain, update: Update, context: CallbackCo
         # Check if no download links were found
         if not download_links:
             await context.bot.delete_message(chat_id=update.message.chat_id, message_id=searching_message_id)
-            await update.message.reply_text("No search results found, Please check your spelling on google...")
+            await update.message.reply_text("No search results found, Please check your spelling on google.com")
             return
 
         # Use a set to store unique links
