@@ -1,7 +1,7 @@
 import os
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler, JobQueue
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler
 import requests
 from bs4 import BeautifulSoup
 
@@ -61,14 +61,7 @@ def redirection_domain_get(old_url):
     except requests.RequestException as e:
         return old_url
 
-def delete_message(context: CallbackContext) -> None:
-    job = context.job
-    try:
-        context.bot.delete_message(chat_id=job.data['chat_id'], message_id=job.data['message_id'])
-    except Exception as e:
-        logger.error(f"Failed to delete message: {e}")
-
-async def filmyfly_movie_search(url, domain, update: Update, context: CallbackContext, searching_message_id: int):
+async def filmyfly_movie_search(url, domain, update: Update, context: CallbackContext):
     # Send a GET request to the URL
     response = requests.get(url)
 
@@ -99,14 +92,11 @@ async def filmyfly_movie_search(url, domain, update: Update, context: CallbackCo
         context.user_data['search_results'] = buttons
         context.user_data['current_page'] = 0
         
-        # Delete the "Searching..." message
-        await context.bot.delete_message(chat_id=update.message.chat_id, message_id=searching_message_id)
-        
         # Send the first page of results
         await send_search_results(update, context)
     else:
         await update.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
-
+        
 async def send_search_results(update: Update, context: CallbackContext):
     buttons = context.user_data['search_results']
     current_page = context.user_data['current_page']
@@ -122,12 +112,13 @@ async def send_search_results(update: Update, context: CallbackContext):
     
     reply_markup = InlineKeyboardMarkup(page_buttons)
     if update.message:
-        sent_message = await update.message.reply_text("Download Links:", reply_markup=reply_markup)
+        del_msg = await update.message.reply_text("Search Results:", reply_markup=reply_markup)
+        await asyncio.sleep(120)
+        await del_msg.delete()
     elif update.callback_query:
-        sent_message = await update.callback_query.message.reply_text("Download Links:", reply_markup=reply_markup)
-    
-    # Schedule the deletion of the message after 10 minutes (600 seconds)
-    context.job_queue.run_once(delete_message, 600, data={'chat_id': sent_message.chat_id, 'message_id': sent_message.message_id})
+        del_msg = await update.callback_query.message.reply_text("Search Results:", reply_markup=reply_markup)
+        await asyncio.sleep(120)
+        await del_msg.delete()
 
 async def handle_button_click(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -139,9 +130,9 @@ async def handle_button_click(update: Update, context: CallbackContext):
     else:
         url = context.user_data.get(query.data)
         if url:
-            await filmyfly_download_linkmake_view(url, update, context)
+            await filmyfly_download_linkmake_view(url, update)
 
-async def filmyfly_download_linkmake_view(url, update: Update, context: CallbackContext):
+async def filmyfly_download_linkmake_view(url, update: Update):
     # Send a GET request to the URL
     response = requests.get(url)
 
@@ -165,10 +156,7 @@ async def filmyfly_download_linkmake_view(url, update: Update, context: Callback
                 buttons.append([InlineKeyboardButton(f'Link: {href}', url=href)])
         
         reply_markup = InlineKeyboardMarkup(buttons)
-        sent_message = await update.callback_query.message.reply_text("Linkmake Links:", reply_markup=reply_markup)
-        
-        # Schedule the deletion of the message after 10 minutes (600 seconds)
-        context.job_queue.run_once(delete_message, 600, data={'chat_id': sent_message.chat_id, 'message_id': sent_message.message_id})
+        await update.callback_query.message.reply_text("Download Link:", reply_markup=reply_markup)
     else:
         await update.callback_query.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
 
