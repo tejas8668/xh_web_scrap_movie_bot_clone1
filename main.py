@@ -37,12 +37,12 @@ async def start(update: Update, context: CallbackContext) -> None:
     )
     await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
     await update.message.reply_photo(
-        photo='https://ik.imagekit.io/dvnhxw9vq/unnamed.png?updatedAt=1735280750258',  # Replace with your image URL
+        photo='https://ik.imagekit.io/dvnhxw9vq/movie_bot.png?updatedAt=1741412177209',  # Replace with your image URL
         caption=(
             "👋 **ℍ𝕖𝕝𝕝𝕠 𝔻𝕖𝕒𝕣!**\n\n"
-            "SEND ME ANY TERABOX LINK, I WILL SEND YOU DIRECT STREAM LINK WITHOUT TERABOX LOGIN OR ANY ADS​\n\n"
+            "I am advance movie search bot, Just send me any movie name and i will give you dirct download link of any movie.​\n\n"
             "**𝐈𝐦𝐩𝐨𝐫𝐭𝐚𝐧𝐭​​**\n\n"
-            "𝗨𝘀𝗲 𝗖𝗵𝗿𝗼𝗺𝗲 𝗙𝗼𝗿 𝗔𝗰𝗰𝗲𝘀𝘀 𝗠𝘆 𝗔𝗹𝗹 𝗳𝗲𝗮𝘁𝘂𝗿𝗲𝘀"
+            "Please search correct spelling for better results"
         ),
         parse_mode='Markdown'
     )
@@ -73,6 +73,12 @@ async def filmyfly_movie_search(url, domain, update: Update, context: CallbackCo
 
         # Find all <a> tags with href containing '/page-download/'
         download_links = soup.find_all('a', href=lambda href: href and '/page-download/' in href)
+
+        # Check if no download links were found
+        if not download_links:
+            await context.bot.delete_message(chat_id=update.message.chat_id, message_id=searching_message_id)
+            await update.message.reply_text("No search results found, Please check your spelling on google...")
+            return
 
         # Use a set to store unique links
         unique_links = set()
@@ -142,16 +148,21 @@ async def handle_button_click(update: Update, context: CallbackContext):
             await filmyfly_download_linkmake_view(url, update)
 
 async def filmyfly_download_linkmake_view(url, update: Update):
-    # Send a GET request to the URL
-    response = requests.get(url)
+    try:
+        # Send a GET request to the URL
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for HTTP errors
 
-    # Check if the request was successful
-    if response.status_code == 200:
         # Parse the HTML content
         soup = BeautifulSoup(response.text, 'html.parser')
         
         # Find all <a> tags with href containing 'https://linkmake.in/view'
         linkmake_links = soup.find_all('a', href=lambda href: href and 'https://linkmake.in/view' in href)
+        
+        # Check if no linkmake links were found
+        if not linkmake_links:
+            await update.callback_query.message.reply_text("Download Link not found.")
+            return
         
         # Use a set to store unique links
         unique_links = set()
@@ -162,12 +173,14 @@ async def filmyfly_download_linkmake_view(url, update: Update):
             href = link.get('href')
             if href and href not in unique_links:
                 unique_links.add(href)
-                buttons.append([InlineKeyboardButton(f'Link: {href}', url=href)])
+                buttons.append([InlineKeyboardButton(f'Your Download Link', url=href)])
         
         reply_markup = InlineKeyboardMarkup(buttons)
         await update.callback_query.message.reply_text("Download Link:", reply_markup=reply_markup)
-    else:
-        await update.callback_query.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
+    except requests.RequestException as e:
+        await update.callback_query.message.reply_text(f"Failed to retrieve the webpage. Error: {e}")
+    except Exception as e:
+        await update.callback_query.message.reply_text(f"An unexpected error occurred. Error: {e}")
 
 async def filmyfly_scraping(update: Update, context: CallbackContext):
     # Send a "Searching..." message
