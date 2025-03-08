@@ -1,10 +1,10 @@
 import os
 import logging
-import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler
 import requests
 from bs4 import BeautifulSoup
+import asyncio
 
 # Configure logging
 logging.basicConfig(
@@ -119,12 +119,15 @@ async def send_search_results(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(page_buttons)
     if update.message:
         del_msg = await update.message.reply_text("Search Results:", reply_markup=reply_markup)
-        await asyncio.sleep(120)
-        await del_msg.delete()
     elif update.callback_query:
         del_msg = await update.callback_query.message.reply_text("Search Results:", reply_markup=reply_markup)
-        await asyncio.sleep(120)
-        await del_msg.delete()
+    
+    # Schedule the deletion of the message after 120 seconds without blocking
+    asyncio.create_task(delete_message_after_delay(del_msg))
+
+async def delete_message_after_delay(message):
+    await asyncio.sleep(120)
+    await message.delete()
 
 async def handle_button_click(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -136,14 +139,14 @@ async def handle_button_click(update: Update, context: CallbackContext):
     else:
         url = context.user_data.get(query.data)
         if url:
-            await filmyfly_download_linkmake_view(url, update, context)
+            await filmyfly_download_linkmake_view(url, update)
 
-async def filmyfly_download_linkmake_view(url, update: Update, context: CallbackContext):
-    try:
-        # Send a GET request to the URL
-        response = requests.get(url)
-        response.raise_for_status()  # Raise an exception for HTTP errors
+async def filmyfly_download_linkmake_view(url, update: Update):
+    # Send a GET request to the URL
+    response = requests.get(url)
 
+    # Check if the request was successful
+    if response.status_code == 200:
         # Parse the HTML content
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -162,13 +165,9 @@ async def filmyfly_download_linkmake_view(url, update: Update, context: Callback
                 buttons.append([InlineKeyboardButton(f'Link: {href}', url=href)])
         
         reply_markup = InlineKeyboardMarkup(buttons)
-        del_msg = await update.callback_query.message.reply_text("Download Link:", reply_markup=reply_markup)
-        await asyncio.sleep(120)
-        await del_msg.delete()
-    except requests.RequestException as e:
-        await update.callback_query.message.reply_text(f"Failed to retrieve the webpage. Error: {e}")
-    except Exception as e:
-        await update.callback_query.message.reply_text(f"An unexpected error occurred. Error: {e}")
+        await update.callback_query.message.reply_text("Download Link:", reply_markup=reply_markup)
+    else:
+        await update.callback_query.message.reply_text(f"Failed to retrieve the webpage. Status code: {response.status_code}")
 
 async def filmyfly_scraping(update: Update, context: CallbackContext):
     # Send a "Searching..." message
