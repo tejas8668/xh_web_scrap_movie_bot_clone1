@@ -117,8 +117,7 @@ async def handle_button_click(update: Update, context: CallbackContext):
         if url:
             await filmyfly_download_linkmake_view(url, update)
 
-# Function to scrape video URLs and image URLs
-def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_id):
+async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_id):
     response = requests.get(url)
     
     if response.status_code != 200:
