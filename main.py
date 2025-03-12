@@ -35,7 +35,7 @@ async def start(update: Update, context: CallbackContext) -> None:
         f"New user started the bot:\n"
         f"Name: {user.full_name}\n"
         f"Username: @{user.username}\n"
-        f"User  ID: {user.id}"
+        f"User   ID: {user.id}"
     )
     await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
     await update.message.reply_photo(
@@ -65,7 +65,7 @@ def redirection_domain_get(old_url):
         return old_url
 
 async def send_search_results(update: Update, context: CallbackContext):
-    user_id = update.effective_user.id
+    user_id = update.callback_query.from_user.id if update.callback_query else update.effective_user.id
     buttons = users[user_id]['search_results']
     current_page = users[user_id]['current_page']
     
@@ -73,16 +73,6 @@ async def send_search_results(update: Update, context: CallbackContext):
     start = current_page * 5
     end = start + 5
     page_buttons = buttons[start:end]
-    
-    # Add a "Next" button if there are more results
-    reply_markup = InlineKeyboardMarkup([
-        [InlineKeyboardButton("Next", callback_data="next_page")] if end < len(buttons) else []
-    ])
-    
-    if update.message:
-        del_msg = await update.message.reply_text("Search Results:", reply_markup=reply_markup)
-    elif update.callback_query:
-        del_msg = await update.callback_query.message.reply_text("Search Results:", reply_markup=reply_markup)
     
     # Send the video links with thumbnails
     for index, (video_url, image_url) in enumerate(page_buttons):
@@ -96,8 +86,14 @@ async def send_search_results(update: Update, context: CallbackContext):
             ])
         )
     
-    # Schedule the deletion of the message after 120 seconds without blocking
-    asyncio.create_task(delete_message_after_delay(del_msg))
+    # Check if there are more results to show
+    if end < len(buttons):
+        reply_markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton("Next", callback_data="next_page")]
+        ])
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="More results available:", reply_markup=reply_markup)
+    else:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="All links sent.")
 
 async def delete_message_after_delay(message):
     await asyncio.sleep(120)
@@ -116,7 +112,6 @@ async def handle_button_click(update: Update, context: CallbackContext):
         if url:
             await filmyfly_download_linkmake_view(url, update)
 
-# Function to scrape video URLs and image URLs
 async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_id):
     response = requests.get(url)
     
