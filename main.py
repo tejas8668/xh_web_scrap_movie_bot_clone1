@@ -102,7 +102,8 @@ async def delete_message_after_delay(message):
 
 async def handle_button_click(update: Update, context: CallbackContext):
     query = update.callback_query
-    await query.answer user_id = query.from_user.id
+    await query.answer()  # Corrected line
+    user_id = query.from_user.id
     if query.data == "next_page":
         users[user_id]['current_page'] += 1
         await send_search_results(query, context)
