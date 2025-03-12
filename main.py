@@ -36,7 +36,7 @@ async def start(update: Update, context: CallbackContext) -> None:
         f"New user started the bot:\n"
         f"Name: {user.full_name}\n"
         f"Username: @{user.username}\n"
-        f"User   ID: {user.id}"
+        f"User    ID: {user.id}"
     )
     await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
     await update.message.reply_photo(
@@ -105,7 +105,7 @@ async def handle_button_click(update: Update, context: CallbackContext):
     await query.answer()  # Corrected line
     user_id = query.from_user.id
     if query.data == "next_page":
-        users [user_id]['current_page'] += 1
+        users[user_id]['current_page'] += 1
         await send_search_results(query, context)
     else:
         url = context.user_data.get(query.data)
@@ -143,7 +143,7 @@ async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_
                     users[user_id]['search_results'].append((video_url, image_url))
 
     await update.message.reply_text("Links fetched successfully!")
-    await send_search_results(update, context)
+    await send_search_results(update.callback_query, context)  # Pass the correct query object
 
 async def xh_scrap_video_home(update: Update, context: CallbackContext):
     searching_message = await update.message.reply_text("Searching...")
