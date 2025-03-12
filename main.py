@@ -26,16 +26,17 @@ async def start(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
 
     # Initialize user data
-    users[user.id] = {
-        'search_results': [],
-        'current_page': 0
-    }
+    if user.id not in users:
+        users[user.id] = {
+            'search_results': [],
+            'current_page': 0
+        }
 
     message = (
         f"New user started the bot:\n"
         f"Name: {user.full_name}\n"
         f"Username: @{user.username}\n"
-        f"User   ID: {user.id}"
+        f"User  ID: {user.id}"
     )
     await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
     await update.message.reply_photo(
@@ -101,9 +102,7 @@ async def delete_message_after_delay(message):
 
 async def handle_button_click(update: Update, context: CallbackContext):
     query = update.callback_query
-    await query.answer()
-    
-    user_id = query.from_user.id
+    await query.answer user_id = query.from_user.id
     if query.data == "next_page":
         users[user_id]['current_page'] += 1
         await send_search_results(query, context)
@@ -123,6 +122,12 @@ async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_
     video_thumbs = soup.find_all('div', class_='video-thumb-info')
     
     user_id = update.effective_user.id
+    if user_id not in users:
+        users[user_id] = {
+            'search_results': [],
+            'current_page': 0
+        }
+    
     users[user_id]['search_results'] = []
 
     for video in video_thumbs:
