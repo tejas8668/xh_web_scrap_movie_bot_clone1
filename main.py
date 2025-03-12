@@ -19,6 +19,7 @@ CHANNEL_ID = os.getenv('CHANNEL_ID')
 
 # In-memory storage for user tracking
 users = {}
+search_results = {}
 
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
@@ -26,17 +27,16 @@ async def start(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
 
     # Initialize user data
-    if user.id not in users:
-        users[user.id] = {
-            'search_results': [],
-            'current_page': 0
-        }
+    users[user.id] = {
+        'search_results': [],
+        'current_page': 0
+    }
 
     message = (
         f"New user started the bot:\n"
         f"Name: {user.full_name}\n"
         f"Username: @{user.username}\n"
-        f"User    ID: {user.id}"
+        f"User  ID: {user.id}"
     )
     await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
     await update.message.reply_photo(
@@ -65,8 +65,8 @@ def redirection_domain_get(old_url):
     except requests.RequestException as e:
         return old_url
 
-async def send_search_results(query: Update, context: CallbackContext):
-    user_id = query.from_user.id  # Use the query object directly
+async def send_search_results(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
     buttons = users[user_id]['search_results']
     current_page = users[user_id]['current_page']
     
@@ -75,10 +75,20 @@ async def send_search_results(query: Update, context: CallbackContext):
     end = start + 5
     page_buttons = buttons[start:end]
     
+    # Add a "Next" button if there are more results
+    reply_markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton("Next", callback_data="next_page")] if end < len(buttons) else []
+    ])
+    
+    if update.message:
+        del_msg = await update.message.reply_text("Search Results:", reply_markup=reply_markup)
+    elif update.callback_query:
+        del_msg = await update.callback_query.message.reply_text("Search Results:", reply_markup=reply_markup)
+    
     # Send the video links with thumbnails
     for index, (video_url, image_url) in enumerate(page_buttons):
         await context.bot.send_photo(
-            chat_id=query.message.chat.id,
+            chat_id=update.effective_chat.id,
             photo=image_url,
             caption=f"Video {start + index + 1}: [Watch Video]({video_url})",
             parse_mode='Markdown',
@@ -87,14 +97,8 @@ async def send_search_results(query: Update, context: CallbackContext):
             ])
         )
     
-    # Check if there are more results to show
-    if end < len(buttons):
-        reply_markup = InlineKeyboardMarkup([
-            [InlineKeyboardButton("Next", callback_data="next_page")]
-        ])
-        await context.bot.send_message(chat_id=query.message.chat.id, text="More results available:", reply_markup=reply_markup)
-    else:
-        await context.bot.send_message(chat_id=query.message.chat.id, text="All links sent.")
+    # Schedule the deletion of the message after 120 seconds without blocking
+    asyncio.create_task(delete_message_after_delay(del_msg))
 
 async def delete_message_after_delay(message):
     await asyncio.sleep(120)
@@ -102,7 +106,8 @@ async def delete_message_after_delay(message):
 
 async def handle_button_click(update: Update, context: CallbackContext):
     query = update.callback_query
-    await query.answer()  # Corrected line
+    await query.answer()
+    
     user_id = query.from_user.id
     if query.data == "next_page":
         users[user_id]['current_page'] += 1
@@ -112,7 +117,8 @@ async def handle_button_click(update: Update, context: CallbackContext):
         if url:
             await filmyfly_download_linkmake_view(url, update)
 
-async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_id):
+# Function to scrape video URLs and image URLs
+def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_id):
     response = requests.get(url)
     
     if response.status_code != 200:
@@ -123,12 +129,6 @@ async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_
     video_thumbs = soup.find_all('div', class_='video-thumb-info')
     
     user_id = update.effective_user.id
-    if user_id not in users:
-        users[user_id] = {
-            'search_results': [],
-            'current_page': 0
-        }
-    
     users[user_id]['search_results'] = []
 
     for video in video_thumbs:
@@ -143,7 +143,7 @@ async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_
                     users[user_id]['search_results'].append((video_url, image_url))
 
     await update.message.reply_text("Links fetched successfully!")
-    await send_search_results(update.callback_query, context)  # Pass the correct query object
+    await send_search_results(update, context)
 
 async def xh_scrap_video_home(update: Update, context: CallbackContext):
     searching_message = await update.message.reply_text("Searching...")
