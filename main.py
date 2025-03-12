@@ -66,7 +66,7 @@ def redirection_domain_get(old_url):
         return old_url
 
 async def send_search_results(update: Update, context: CallbackContext):
-    user_id = update.effective_user.id
+    user_id = update.effective_user.id if update.message else update.callback_query.from_user.id
     buttons = users[user_id]['search_results']
     current_page = users[user_id]['current_page']
     
@@ -74,16 +74,6 @@ async def send_search_results(update: Update, context: CallbackContext):
     start = current_page * 5
     end = start + 5
     page_buttons = buttons[start:end]
-    
-    # Add a "Next" button if there are more results
-    reply_markup = InlineKeyboardMarkup([
-        [InlineKeyboardButton("Next", callback_data="next_page")] if end < len(buttons) else []
-    ])
-    
-    if update.message:
-        del_msg = await update.message.reply_text("Search Results:", reply_markup=reply_markup)
-    elif update.callback_query:
-        del_msg = await update.callback_query.message.reply_text("Search Results:", reply_markup=reply_markup)
     
     # Send the video links with thumbnails
     for index, (video_url, image_url) in enumerate(page_buttons):
@@ -97,12 +87,18 @@ async def send_search_results(update: Update, context: CallbackContext):
             ])
         )
     
-    # Schedule the deletion of the message after 120 seconds without blocking
-    asyncio.create_task(delete_message_after_delay(del_msg))
-
-async def delete_message_after_delay(message):
-    await asyncio.sleep(120)
-    await message.delete()
+    # Add a "Next" button if there are more results
+    if end < len(buttons):
+        reply_markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton("Next", callback_data="next_page")]
+        ])
+        if update.message:
+            del_msg = await update.message.reply_text("More results available:", reply_markup=reply_markup)
+        elif update.callback_query:
+            del_msg = await update.callback_query.message.reply_text("More results available:", reply_markup=reply_markup)
+        
+        # Schedule the deletion of the message after 120 seconds without blocking
+        asyncio.create_task(delete_message_after_delay(del_msg))
 
 async def handle_button_click(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -116,6 +112,11 @@ async def handle_button_click(update: Update, context: CallbackContext):
         url = context.user_data.get(query.data)
         if url:
             await filmyfly_download_linkmake_view(url, update)
+
+
+async def delete_message_after_delay(message):
+    await asyncio.sleep(120)
+    await message.delete()
 
 async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_id):
     response = requests.get(url)
