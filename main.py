@@ -36,7 +36,7 @@ async def start(update: Update, context: CallbackContext) -> None:
         f"New user started the bot:\n"
         f"Name: {user.full_name}\n"
         f"Username: @{user.username}\n"
-        f"User  ID: {user.id}"
+        f"User   ID: {user.id}"
     )
     await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
     await update.message.reply_photo(
@@ -65,8 +65,8 @@ def redirection_domain_get(old_url):
     except requests.RequestException as e:
         return old_url
 
-async def send_search_results(update: Update, context: CallbackContext):
-    user_id = update.callback_query.from_user.id if update.callback_query else update.effective_user.id
+async def send_search_results(query: Update, context: CallbackContext):
+    user_id = query.from_user.id  # Use the query object directly
     buttons = users[user_id]['search_results']
     current_page = users[user_id]['current_page']
     
@@ -78,7 +78,7 @@ async def send_search_results(update: Update, context: CallbackContext):
     # Send the video links with thumbnails
     for index, (video_url, image_url) in enumerate(page_buttons):
         await context.bot.send_photo(
-            chat_id=update.effective_chat.id,
+            chat_id=query.message.chat.id,
             photo=image_url,
             caption=f"Video {start + index + 1}: [Watch Video]({video_url})",
             parse_mode='Markdown',
@@ -92,9 +92,9 @@ async def send_search_results(update: Update, context: CallbackContext):
         reply_markup = InlineKeyboardMarkup([
             [InlineKeyboardButton("Next", callback_data="next_page")]
         ])
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="More results available:", reply_markup=reply_markup)
+        await context.bot.send_message(chat_id=query.message.chat.id, text="More results available:", reply_markup=reply_markup)
     else:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="All links sent.")
+        await context.bot.send_message(chat_id=query.message.chat.id, text="All links sent.")
 
 async def delete_message_after_delay(message):
     await asyncio.sleep(120)
@@ -105,7 +105,7 @@ async def handle_button_click(update: Update, context: CallbackContext):
     await query.answer()  # Corrected line
     user_id = query.from_user.id
     if query.data == "next_page":
-        users[user_id]['current_page'] += 1
+        users [user_id]['current_page'] += 1
         await send_search_results(query, context)
     else:
         url = context.user_data.get(query.data)
