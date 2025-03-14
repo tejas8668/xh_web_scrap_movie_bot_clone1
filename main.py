@@ -115,7 +115,27 @@ async def get_token(user_id: int, bot_username: str) -> str:
     verification_link = f"https://telegram.me/{bot_username}?start={token}"
     # Shorten verification link using shorten_url_link function
     #shortened_link = shorten_url_link(verification_link) # Removed shorten_url_link as it's not defined
-    return verification_link # Return the full verification link
+    # return verification_link # Return the full verification link
+    # Shorten verification link using shorten_url_link function
+    shortened_link = shorten_url_link(verification_link)
+    return shortened_link
+
+def shorten_url_link(url):
+    api_url = 'https://arolinks.com/api'
+    api_key = '90bcb2590cca0a2b438a66e178f5e90fea2dc8b4'
+    params = {
+        'api': api_key,
+        'url': url
+    }
+    # Yahan pe custom certificate bundle ka path specify karo
+    response = requests.get(api_url, params=params, verify=False)
+    if response.status_code == 200:
+        data = response.json()
+        if data['status'] == 'success':
+            logger.info(f"Adrinolinks shortened URL: {data['shortenedUrl']}")
+            return data['shortenedUrl']
+    logger.error(f"Failed to shorten URL with Adrinolinks: {url}")
+    return url
 
 def redirection_domain_get(old_url):
     try:
