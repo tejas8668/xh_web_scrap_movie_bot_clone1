@@ -8,6 +8,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler
 import requests
 from bs4 import BeautifulSoup
+import urllib.parse
 
 # Configure logging
 logging.basicConfig(
@@ -225,7 +226,6 @@ async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_
         logger.error("No effective message available after fetching links.")
     await send_search_results(update, context)
 
-
 async def xh_scrape_m3u8_links(url, update: Update, context: CallbackContext):
     try:
         # Fetch webpage content
@@ -262,7 +262,9 @@ async def xh_scrape_m3u8_links(url, update: Update, context: CallbackContext):
         if unique_links:
             buttons = []
             for link in unique_links:
-                stream_gen_link_xh_to_hsl = f"https://www.hlsplayer.org/play?url={link}"
+                # Decode the URL before passing it to the HLS player
+                decoded_link = urllib.parse.unquote(link)
+                stream_gen_link_xh_to_hsl = f"https://www.hlsplayer.org/play?url={decoded_link}"
                 buttons.append([InlineKeyboardButton("Watch Stream", url=stream_gen_link_xh_to_hsl)])
             
             reply_markup = InlineKeyboardMarkup(buttons)
