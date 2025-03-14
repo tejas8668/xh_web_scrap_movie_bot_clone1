@@ -77,13 +77,17 @@ async def send_search_results(update: Update, context: CallbackContext):
     
     # Send the video links with thumbnails
     for index, (video_url, image_url) in enumerate(page_buttons):
+        callback_data = f"watch_{video_url}"
+        if len(callback_data) > 64:
+            callback_data = callback_data[:64]  # Truncate to fit the allowed length
+
         await context.bot.send_photo(
             chat_id=update.effective_chat.id,
             photo=image_url,
             caption=f"Video {start + index + 1}: [Watch Video]",
             parse_mode='Markdown',
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("Watch", callback_data=f"watch_{video_url}")]
+                [InlineKeyboardButton("Watch", callback_data=callback_data)]
             ])
         )
     
@@ -250,7 +254,7 @@ async def xh_scrap_video_home(update: Update, context: CallbackContext):
     
     # Fetch download links
     xh_user_query = update.message.text
-    if not xh_home_scrap_query:
+    if not xh_user_query:
         await update.message.reply_text("Search Query To Get Video")
         return
 
