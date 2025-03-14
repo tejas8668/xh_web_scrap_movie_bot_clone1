@@ -83,7 +83,7 @@ async def send_search_results(update: Update, context: CallbackContext):
             caption=f"Video {start + index + 1}: [Watch Video]",
             parse_mode='Markdown',
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("Watch", url=video_url)]
+                [InlineKeyboardButton("Watch", callback_data=f"watch_{video_url}")]
             ])
         )
     
@@ -99,6 +99,30 @@ async def send_search_results(update: Update, context: CallbackContext):
         
         # Schedule the deletion of the message after 120 seconds without blocking
         asyncio.create_task(delete_message_after_delay(del_msg))
+
+async def handle_button_click(update: Update, context: CallbackContext):
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    
+    # Ensure the user is initialized
+    if user_id not in users:
+        users[user_id] = {
+            'search_results': [],
+            'current_page': 0
+        }
+    
+    if query.data == "next_page":
+        users[user_id]['current_page'] += 1
+        await send_search_results(update, context)
+    elif query.data.startswith("watch_"):
+        video_url = query.data[len("watch_"):]
+        await xh_scrape_m3u8_links(video_url, update, context)
+    else:
+        url = context.user_data.get(query.data)
+        if url:
+            await filmyfly_download_linkmake_view(url, update)
 
 async def handle_button_click(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -159,6 +183,55 @@ async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_
 
     await update.message.reply_text("Links fetched successfully!")
     await send_search_results(update, context)
+
+
+async def xh_scrape_m3u8_links(url, update: Update, context: CallbackContext):
+    try:
+        # Fetch webpage content
+        response = requests.get(url)
+        response.raise_for_status()
+        
+        # Create BeautifulSoup object
+        soup = BeautifulSoup(response.text, 'html.parser')
+        base_url = response.url  # Get base URL for joining relative links
+        
+        # List to store all found m3u8 links
+        m3u8_links = []
+        
+        # Find links in href attributes
+        for tag in soup.find_all(href=re.compile(r'\.m3u8$')):
+            href = tag.get('href')
+            full_url = urljoin(base_url, href)
+            m3u8_links.append(full_url)
+        
+        # Find links in src attributes
+        for tag in soup.find_all(src=re.compile(r'\.m3u8$')):
+            src = tag.get('src')
+            full_url = urljoin(base_url, src)
+            m3u8_links.append(full_url)
+        
+        # Additional search using regex for any m3u8 patterns in page text
+        text_links = re.findall(r'https?://[^\s"\']+\.m3u8', response.text)
+        m3u8_links.extend([urljoin(base_url, link) for link in text_links])
+        
+        # Remove duplicates
+        unique_links = list(set(m3u8_links))
+        
+        # Send results as Telegram buttons
+        if unique_links:
+            buttons = []
+            for link in unique_links:
+                stream_gen_link_xh_to_hsl = f"https://www.hlsplayer.org/play?url={link}"
+                buttons.append([InlineKeyboardButton("Watch Stream", url=stream_gen_link_xh_to_hsl)])
+            
+            reply_markup = InlineKeyboardMarkup(buttons)
+            await update.message.reply_text("Found m3u8 links:", reply_markup=reply_markup)
+        else:
+            await update.message.reply_text("No .m3u8 links found on the page")
+    except requests.exceptions.RequestException as e:
+        await update.message.reply_text(f"Error fetching the page: {e}")
+    except Exception as e:
+        await update.message.reply_text(f"An error occurred: {e}")
 
 async def xh_scrap_video_home_demo_code(update: Update, context: CallbackContext):
     searching_message = await update.message.reply_text("Searching...")
