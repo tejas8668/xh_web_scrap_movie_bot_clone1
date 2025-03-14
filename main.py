@@ -93,7 +93,7 @@ async def send_search_results(update: Update, context: CallbackContext):
             await context.bot.send_photo(
                 chat_id=update.effective_chat.id,
                 photo=image_url,
-                caption=f"Video {start + index + 1}: [Watch Video](https://www.example.com)", # Removed callback data from caption
+                caption=f"Video {start + index + 1}: [Watch Video]", # Removed callback data from caption
                 parse_mode='Markdown',
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("Watch", callback_data=callback_data)]
@@ -101,7 +101,10 @@ async def send_search_results(update: Update, context: CallbackContext):
             )
         except Exception as e:
             logger.error(f"Error sending photo: {e}")
-            await update.message.reply_text(f"Failed to send video {start + index + 1}.")
+            if update.message:
+                await update.message.reply_text(f"Failed to send video {start + index + 1}.")
+            elif update.callback_query:
+                await update.callback_query.message.reply_text(f"Failed to send video {start + index + 1}.")
     
     # Add a "Next" button if there are more results
     if end < len(buttons):
@@ -143,7 +146,10 @@ async def handle_button_click(update: Update, context: CallbackContext):
             await xh_scrape_m3u8_links(video_url, update, context)
         except Exception as e:
             logger.error(f"Error in xh_scrape_m3u8_links: {e}")
-            await update.callback_query.message.reply_text(f"Failed to process video link.")
+            if update.callback_query and update.callback_query.message:
+                await update.callback_query.message.reply_text(f"Failed to process video link.")
+            else:
+                logger.error("Callback query or message is None in handle_button_click")
     else:
         url = context.user_data.get(query.data)
         if url:
@@ -159,7 +165,10 @@ async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_
         response = requests.get(url)
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
     except requests.exceptions.RequestException as e:
-        await update.message.reply_text(f"Failed to retrieve the page: {e}")
+        if update.message:
+            await update.message.reply_text(f"Failed to retrieve the page: {e}")
+        elif update.callback_query:
+            await update.callback_query.message.reply_text(f"Failed to retrieve the page: {e}")
         return
     
     soup = BeautifulSoup(response.content, 'html.parser')
@@ -187,7 +196,10 @@ async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_
                     image_url = img_tag['src']
                     users[user_id]['search_results'].append((video_url, image_url))
 
-    await update.message.reply_text("Links fetched successfully!")
+    if update.message:
+        await update.message.reply_text("Links fetched successfully!")
+    elif update.callback_query:
+        await update.callback_query.message.reply_text("Links fetched successfully!")
     await send_search_results(update, context)
 
 
@@ -231,13 +243,33 @@ async def xh_scrape_m3u8_links(url, update: Update, context: CallbackContext):
                 buttons.append([InlineKeyboardButton("Watch Stream", url=stream_gen_link_xh_to_hsl)])
             
             reply_markup = InlineKeyboardMarkup(buttons)
-            await update.message.reply_text("Found m3u8 links:", reply_markup=reply_markup)
+            if update.message:
+                await update.message.reply_text("Found m3u8 links:", reply_markup=reply_markup)
+            elif update.callback_query and update.callback_query.message:
+                await update.callback_query.message.reply_text("Found m3u8 links:", reply_markup=reply_markup)
+            else:
+                logger.error("No message or callback_query.message in xh_scrape_m3u8_links")
         else:
-            await update.message.reply_text("No .m3u8 links found on the page")
+            if update.message:
+                await update.message.reply_text("No .m3u8 links found on the page")
+            elif update.callback_query and update.callback_query.message:
+                await update.callback_query.message.reply_text("No .m3u8 links found on the page")
+            else:
+                logger.error("No message or callback_query.message in xh_scrape_m3u8_links")
     except requests.exceptions.RequestException as e:
-        await update.message.reply_text(f"Error fetching the page: {e}")
+        if update.message:
+            await update.message.reply_text(f"Error fetching the page: {e}")
+        elif update.callback_query and update.callback_query.message:
+            await update.callback_query.message.reply_text(f"Error fetching the page: {e}")
+        else:
+            logger.error("No message or callback_query.message in xh_scrape_m3u8_links")
     except Exception as e:
-        await update.message.reply_text(f"An error occurred: {e}")
+        if update.message:
+            await update.message.reply_text(f"An error occurred: {e}")
+        elif update.callback_query and update.callback_query.message:
+            await update.callback_query.message.reply_text(f"An error occurred: {e}")
+        else:
+            logger.error("No message or callback_query.message in xh_scrape_m3u8_links")
 
 async def xh_scrap_video_home_demo_code(update: Update, context: CallbackContext):
     searching_message = await update.message.reply_text("Searching...")
