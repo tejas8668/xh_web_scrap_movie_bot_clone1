@@ -25,6 +25,7 @@ CHANNEL_ID = os.getenv('CHANNEL_ID')
 users = {}
 search_results = {}
 temp_url_ids = {}  # Dictionary to store temporary URL IDs and their URLs
+message_deletion_tasks = {}  # Dictionary to store message deletion tasks
 
 async def expire_temp_url_id(url_id):
     await asyncio.sleep(3600)  # Wait for 1 hour (3600 seconds)
@@ -32,7 +33,6 @@ async def expire_temp_url_id(url_id):
         del temp_url_ids[url_id]
         logger.info(f"Expired temporary URL ID: {url_id}")
 
-# Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
     logger.info("Received /start command")
     user = update.effective_user
@@ -50,7 +50,7 @@ async def start(update: Update, context: CallbackContext) -> None:
         f"User  ID: {user.id}"
     )
     await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
-    await update.message.reply_photo(
+    start_message = await update.message.reply_photo(
         photo='https://ik.imagekit.io/dvnhxw9vq/movie_bot.png?updatedAt=1741412177209',  # Replace with your image URL
         caption=(
             "👋 **ℍ𝕖𝕝𝕝𝕠 𝔻𝕖𝕒𝕣!**\n\n"
@@ -60,6 +60,8 @@ async def start(update: Update, context: CallbackContext) -> None:
         ),
         parse_mode='Markdown'
     )
+    # Do not schedule deletion for the /start message
+    # asyncio.create_task(delete_message_after_delay(start_message))
 
 def redirection_domain_get(old_url):
     try:
@@ -101,7 +103,7 @@ async def send_search_results(update: Update, context: CallbackContext):
         
 
         try:
-            await context.bot.send_photo(
+            sent_message = await context.bot.send_photo(
                 chat_id=update.effective_chat.id,
                 photo=image_url,
                 caption=f"Video {start + index + 1}: [Watch Video]", # Removed callback data from caption
@@ -110,12 +112,15 @@ async def send_search_results(update: Update, context: CallbackContext):
                     [InlineKeyboardButton("Watch", callback_data=callback_data)]
                 ])
             )
+            asyncio.create_task(delete_message_after_delay(sent_message))
         except Exception as e:
             logger.error(f"Error sending photo: {e}")
             if update.message:
-                await update.message.reply_text(f"Failed to send video {start + index + 1}.")
+                error_message = await update.message.reply_text(f"Failed to send video {start + index + 1}.")
+                asyncio.create_task(delete_message_after_delay(error_message))
             elif update.callback_query:
-                await update.callback_query.message.reply_text(f"Failed to send video {start + index + 1}.")
+                error_message = await update.callback_query.message.reply_text(f"Failed to send video {start + index + 1}.")
+                asyncio.create_task(delete_message_after_delay(error_message))
     
     # Add a "Next" button if there are more results
     if end < len(buttons):
@@ -124,15 +129,17 @@ async def send_search_results(update: Update, context: CallbackContext):
         ])
         if update.message:
             del_msg = await update.message.reply_text("More results available:", reply_markup=reply_markup)
+            asyncio.create_task(delete_message_after_delay(del_msg))
         elif update.callback_query:
             try:
                 del_msg = await update.callback_query.message.reply_text("More results available:", reply_markup=reply_markup)
+                asyncio.create_task(delete_message_after_delay(del_msg))
             except AttributeError as e:
                 logger.error(f"Error sending 'More results' message: {e}")
                 return # Exit the function if the message cannot be sent
         
         # Schedule the deletion of the message after 120 seconds without blocking
-        asyncio.create_task(delete_message_after_delay(del_msg))
+        #asyncio.create_task(delete_message_after_delay(del_msg))
 
 
 async def handle_button_click(update: Update, context: CallbackContext):
@@ -160,13 +167,15 @@ async def handle_button_click(update: Update, context: CallbackContext):
             except Exception as e:
                 logger.error(f"Error in xh_scrape_m3u8_links: {e}")
                 if update.callback_query and update.callback_query.message:
-                    await update.callback_query.message.reply_text(f"Failed to process video link.")
+                    error_message = await update.callback_query.message.reply_text(f"Failed to process video link.")
+                    asyncio.create_task(delete_message_after_delay(error_message))
                 else:
                     logger.error("Callback query or message is None in handle_button_click")
         else:
             logger.warning(f"No video URL found for ID: {url_id}")
             if update.callback_query and update.callback_query.message:
-                await update.callback_query.message.reply_text("This video link has expired.")
+                error_message = await update.callback_query.message.reply_text("This video link has expired.")
+                asyncio.create_task(delete_message_after_delay(error_message))
             else:
                 logger.error("Callback query or message is None in handle_button_click")
     else:
@@ -176,7 +185,7 @@ async def handle_button_click(update: Update, context: CallbackContext):
 
 
 async def delete_message_after_delay(message):
-    await asyncio.sleep(120)
+    await asyncio.sleep(300)  # 5 minutes = 300 seconds
     try:
         await message.delete()
     except Exception as e:
@@ -189,7 +198,8 @@ async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_
     except requests.exceptions.RequestException as e:
         effective_message = update.effective_message # Use effective_message
         if effective_message:
-            await effective_message.reply_text(f"Failed to retrieve the page: {e}")
+            error_message = await effective_message.reply_text(f"Failed to retrieve the page: {e}")
+            asyncio.create_task(delete_message_after_delay(error_message))
         else:
             logger.error("No effective message available in Xhamster_scrap_get_link_thumb")
         return
@@ -221,7 +231,8 @@ async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_
 
     effective_message = update.effective_message # Use effective_message
     if effective_message:
-        await effective_message.reply_text("Links fetched successfully!")
+        success_message = await effective_message.reply_text("Links fetched successfully!")
+        asyncio.create_task(delete_message_after_delay(success_message))
     else:
         logger.error("No effective message available after fetching links.")
     await send_search_results(update, context)
@@ -270,47 +281,42 @@ async def xh_scrape_m3u8_links(url, update: Update, context: CallbackContext):
             reply_markup = InlineKeyboardMarkup(buttons)
             effective_message = update.effective_message
             if effective_message:
-                await effective_message.reply_text("Found m3u8 links:", reply_markup=reply_markup)
+                stream_message = await effective_message.reply_text("Found m3u8 links:", reply_markup=reply_markup)
+                asyncio.create_task(delete_message_after_delay(stream_message))
             else:
                 logger.error("No message or callback_query.message in xh_scrape_m3u8_links")
         else:
             effective_message = update.effective_message
             if effective_message:
-                await effective_message.reply_text("No .m3u8 links found on the page")
+                no_links_message = await effective_message.reply_text("No .m3u8 links found on the page")
+                asyncio.create_task(delete_message_after_delay(no_links_message))
             else:
                 logger.error("No message or callback_query.message in xh_scrape_m3u8_links")
     except requests.exceptions.RequestException as e:
         effective_message = update.effective_message
         if effective_message:
-            await effective_message.reply_text(f"Error fetching the page: {e}")
+            error_message = await effective_message.reply_text(f"Error fetching the page: {e}")
+            asyncio.create_task(delete_message_after_delay(error_message))
         else:
             logger.error("No message or callback_query.message in xh_scrape_m3u8_links")
     except Exception as e:
         effective_message = update.effective_message
         if effective_message:
-            await effective_message.reply_text(f"An error occurred: {e}")
+            error_message = await effective_message.reply_text(f"An error occurred: {e}")
+            asyncio.create_task(delete_message_after_delay(error_message))
         else:
             logger.error("No message or callback_query.message in xh_scrape_m3u8_links")
-
-async def xh_scrap_video_home_demo_code(update: Update, context: CallbackContext):
-    searching_message = await update.message.reply_text("Searching...")
-    
-    xh_home_scrap_query = update.message.text
-    if not xh_home_scrap_query:
-        await update.message.reply_text("Send Message ''Get Video'' for Get Videos")
-        return
-
-    xh_home_crap_domain = "https://xhamster43.desi/"
-    await Xhamster_scrap_get_link_thumb(xh_home_crap_domain, update, context, searching_message.message_id)
 
 async def xh_scrap_video_home(update: Update, context: CallbackContext):
     # Send a "Searching..." message
     searching_message = await update.message.reply_text("Searching...")
+    asyncio.create_task(delete_message_after_delay(searching_message))
     
     # Fetch download links
     xh_user_query = update.message.text
     if not xh_user_query:
-        await update.message.reply_text("Search Query To Get Video")
+        no_query_message = await update.message.reply_text("Search Query To Get Video")
+        asyncio.create_task(delete_message_after_delay(no_query_message))
         return
 
     #filmyfly_domain = redirection_domain_get("https://xhamster43.desi/")
@@ -320,10 +326,12 @@ async def xh_scrap_video_home(update: Update, context: CallbackContext):
 
 async def video_command(update: Update, context: CallbackContext):
     searching_message = await update.message.reply_text("Searching...")
+    asyncio.create_task(delete_message_after_delay(searching_message))
     
     xh_home_scrap_query = update.message.text
     if not xh_home_scrap_query:
-        await update.message.reply_text("Send Message ''Get Video'' for Get Videos")
+        no_query_message = await update.message.reply_text("Send Message ''Get Video'' for Get Videos")
+        asyncio.create_task(delete_message_after_delay(no_query_message))
         return
 
     xh_home_crap_domain = "https://xhamster43.desi/"
