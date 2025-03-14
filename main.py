@@ -120,7 +120,7 @@ async def handle_button_click(update: Update, context: CallbackContext):
         url = context.user_data.get(query.data)
         if url:
             await filmyfly_download_linkmake_view(url, update)
-            
+
 async def delete_message_after_delay(message):
     await asyncio.sleep(120)
     await message.delete()
@@ -160,7 +160,33 @@ async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_
     await update.message.reply_text("Links fetched successfully!")
     await send_search_results(update, context)
 
+async def xh_scrap_video_home_demo_code(update: Update, context: CallbackContext):
+    searching_message = await update.message.reply_text("Searching...")
+    
+    xh_home_scrap_query = update.message.text
+    if not xh_home_scrap_query:
+        await update.message.reply_text("Send Message ''Get Video'' for Get Videos")
+        return
+
+    xh_home_crap_domain = "https://xhamster43.desi/"
+    await Xhamster_scrap_get_link_thumb(xh_home_crap_domain, update, context, searching_message.message_id)
+
 async def xh_scrap_video_home(update: Update, context: CallbackContext):
+    # Send a "Searching..." message
+    searching_message = await update.message.reply_text("Searching...")
+    
+    # Fetch download links
+    xh_user_query = update.message.text
+    if not xh_home_scrap_query:
+        await update.message.reply_text("Search Query To Get Video")
+        return
+
+    #filmyfly_domain = redirection_domain_get("https://xhamster43.desi/")
+    #filmyfly_final = f"{filmyfly_domain}site-1.html?to-search={xh_home_scrap_query}"
+    xh_search_query = f"https://xhamster43.desi/search/{xh_user_query}"
+    await Xhamster_scrap_get_link_thumb(xh_search_query, update, context, searching_message.message_id)
+
+async def refresh_command(update: Update, context: CallbackContext):
     searching_message = await update.message.reply_text("Searching...")
     
     xh_home_scrap_query = update.message.text
@@ -178,6 +204,7 @@ def main() -> None:
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("refresh", refresh_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, xh_scrap_video_home))
     app.add_handler(CallbackQueryHandler(handle_button_click))
 
