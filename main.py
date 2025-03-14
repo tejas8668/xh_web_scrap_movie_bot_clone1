@@ -9,6 +9,19 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 import requests
 from bs4 import BeautifulSoup
 import urllib.parse
+from pymongo import MongoClient
+from datetime import datetime, timedelta
+
+# Add this at the top of the file
+VERIFICATION_REQUIRED = os.getenv('VERIFICATION_REQUIRED', 'true').lower() == 'true'
+
+admin_ids = [] # Add admin user IDs here
+
+# MongoDB connection
+MONGO_URI = os.getenv('MONGO_URI')  # Get MongoDB URI from environment variables
+client = MongoClient(MONGO_URI)
+db = client['xh_bot'] # Updated database name
+users_collection = db['users']
 
 # Configure logging
 logging.basicConfig(
@@ -17,51 +30,82 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Get the bot token and channel ID from environment variables
-TOKEN = os.getenv('BOT_TOKEN')
-CHANNEL_ID = os.getenv('CHANNEL_ID')
-
-# In-memory storage for user tracking
-users = {}
-search_results = {}
-temp_url_ids = {}  # Dictionary to store temporary URL IDs and their URLs
-message_deletion_tasks = {}  # Dictionary to store message deletion tasks
-
-async def expire_temp_url_id(url_id):
-    await asyncio.sleep(3600)  # Wait for 1 hour (3600 seconds)
-    if url_id in temp_url_ids:
-        del temp_url_ids[url_id]
-        logger.info(f"Expired temporary URL ID: {url_id}")
-
+# Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
     logger.info("Received /start command")
     user = update.effective_user
 
-    # Initialize user data
-    users[user.id] = {
-        'search_results': [],
-        'current_page': 0
-    }
+    # Check if the start command includes a token (for verification)
+    if context.args:
+        token = context.args[0]
+        user_data = users_collection.find_one({"user_id": user.id, "token": token})
 
+        if user_data:
+            # Update the user's verification status
+            users_collection.update_one(
+                {"user_id": user.id},
+                {"$set": {"verified_until": datetime.now() + timedelta(days=1)}},
+                upsert=True
+            )
+            await update.message.reply_text(
+                "✅ **Verification Successful!**\n\n"
+                "You can now use the bot for the next 24 hours without any restrictions.",
+                parse_mode='Markdown'
+            )
+        else:
+            await update.message.reply_text(
+                "❌ **Invalid Token!**\n\n"
+                "Please try verifying again.",
+                parse_mode='Markdown'
+            )
+        return
+
+    # If no token, send the welcome message and store user ID in MongoDB
+    users_collection.update_one(
+        {"user_id": user.id},
+        {"$set": {"username": user.username, "full_name": user.full_name}},
+        upsert=True
+    )
     message = (
         f"New user started the bot:\n"
         f"Name: {user.full_name}\n"
         f"Username: @{user.username}\n"
-        f"User  ID: {user.id}"
+        f"User   ID: {user.id}"
     )
     await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
     start_message = await update.message.reply_photo(
-        photo='https://ik.imagekit.io/dvnhxw9vq/movie_bot.png?updatedAt=1741412177209',  # Replace with your image URL
+        photo='https://ik.imagekit.io/dvnhxw9vq/bot_pic.jpeg?updatedAt=1741960637889',  # Replace with your image URL
         caption=(
-            "👋 **ℍ𝕖𝕝𝕝𝕠 𝔻𝕖𝕒𝕣!**\n\n"
-            "I am an advanced movie search bot. Just send me any movie name and I will give you a direct download link of any movie.​\n\n"
-            "**𝐈𝐦𝐩𝐨𝐫𝐭𝐚𝐧𝐭​​**\n\n"
-            "Please search with the correct spelling for better results."
+            "🔥 Welcome My Friend 🔥\n\n"
+            "🔞 Your ultimate destination for exclusive adult content!\n\n💦 What You Get Here:\n✅ HD Exclusive Videos\n✅ Daily Hot Updates 🔥\n✅ Private & Premium Content 💎\n✅ Exclusive Requests 📝\n\n"
+            "🚀 Start Exploring Now!\n\n"
+            "👉 Send /start to Start\n👉 Use /video for Get Video\n👉 You Can Also Search Video To Sending A Message To Bot\n\n🔥 Popular Search 🔥\n👉 `Russian`\n👉 `Hot Girls`\n👉 `DBSM`\n👉 `Sex Videos`"
         ),
         parse_mode='Markdown'
     )
     # Do not schedule deletion for the /start message
     # asyncio.create_task(delete_message_after_delay(start_message))
+
+async def check_verification(user_id: int) -> bool:
+    user = users_collection.find_one({"user_id": user_id})
+    if user and user.get("verified_until", datetime.min) > datetime.now():
+        return True
+    return False
+
+async def get_token(user_id: int, bot_username: str) -> str:
+    # Generate a random token
+    token = os.urandom(16).hex()
+    # Update user's verification status in database
+    users_collection.update_one(
+        {"user_id": user_id},
+        {"$set": {"token": token, "verified_until": datetime.min}},  # Reset verified_until to min
+        upsert=True
+    )
+    # Create verification link
+    verification_link = f"https://telegram.me/{bot_username}?start={token}"
+    # Shorten verification link using shorten_url_link function
+    #shortened_link = shorten_url_link(verification_link) # Removed shorten_url_link as it's not defined
+    return verification_link # Return the full verification link
 
 def redirection_domain_get(old_url):
     try:
@@ -308,6 +352,31 @@ async def xh_scrape_m3u8_links(url, update: Update, context: CallbackContext):
             logger.error("No message or callback_query.message in xh_scrape_m3u8_links")
 
 async def xh_scrap_video_home(update: Update, context: CallbackContext):
+    user = update.effective_user
+
+    if user.id in admin_ids:
+        # Admin ko verify karne ki zaroorat na ho
+        pass
+    else:
+        # User ko verify karne ki zaroorat hai
+        if VERIFICATION_REQUIRED and not await check_verification(user.id):
+            # User ko verify karne ki zaroorat hai
+            btn = [
+                [InlineKeyboardButton("Verify", url=await get_token(user.id, context.bot.username))],
+                [InlineKeyboardButton("How To Open Link & Verify", url="https://t.me/how_to_download_0011")]
+            ]
+            await update.message.reply_text(
+                text="🚨 <b>Token Expired!</b>\n\n"
+                     "<b>Timeout: 24 hours</b>\n\n"
+                     "Your access token has expired. Verify it to continue using the bot!\n\n"
+                     "<b>🔑 Why Tokens?</b>\n\n"
+                     "Tokens unlock premium features with a quick ad process. Enjoy 24 hours of uninterrupted access! 🌟\n\n"
+                     "<b>👉 Tap below to verify your token.</b>\n\n"
+                     "Thank you for your support! ❤️",
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup(btn)
+            )
+            return
     # Send a "Searching..." message
     searching_message = await update.message.reply_text("Searching...")
     asyncio.create_task(delete_message_after_delay(searching_message))
@@ -325,6 +394,31 @@ async def xh_scrap_video_home(update: Update, context: CallbackContext):
     await Xhamster_scrap_get_link_thumb(xh_search_query, update, context, searching_message.message_id)
 
 async def video_command(update: Update, context: CallbackContext):
+    user = update.effective_user
+
+    if user.id in admin_ids:
+        # Admin ko verify karne ki zaroorat na ho
+        pass
+    else:
+        # User ko verify karne ki zaroorat hai
+        if VERIFICATION_REQUIRED and not await check_verification(user.id):
+            # User ko verify karne ki zaroorat hai
+            btn = [
+                [InlineKeyboardButton("Verify", url=await get_token(user.id, context.bot.username))],
+                [InlineKeyboardButton("How To Open Link & Verify", url="https://t.me/how_to_download_0011")]
+            ]
+            await update.message.reply_text(
+                text="🚨 <b>Token Expired!</b>\n\n"
+                     "<b>Timeout: 24 hours</b>\n\n"
+                     "Your access token has expired. Verify it to continue using the bot!\n\n"
+                     "<b>🔑 Why Tokens?</b>\n\n"
+                     "Tokens unlock premium features with a quick ad process. Enjoy 24 hours of uninterrupted access! 🌟\n\n"
+                     "<b>👉 Tap below to verify your token.</b>\n\n"
+                     "Thank you for your support! ❤️",
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup(btn)
+            )
+            return
     searching_message = await update.message.reply_text("Searching...")
     asyncio.create_task(delete_message_after_delay(searching_message))
     
