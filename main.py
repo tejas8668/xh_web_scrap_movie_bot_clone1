@@ -136,6 +136,14 @@ async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_
     video_thumbs = soup.find_all('div', class_='video-thumb-info')
     
     user_id = update.effective_user.id
+    
+    # Ensure the user is initialized
+    if user_id not in users:
+        users[user_id] = {
+            'search_results': [],
+            'current_page': 0
+        }
+
     users[user_id]['search_results'] = []
 
     for video in video_thumbs:
