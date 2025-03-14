@@ -115,12 +115,12 @@ async def handle_button_click(update: Update, context: CallbackContext):
     
     if query.data == "next_page":
         users[user_id]['current_page'] += 1
-        await send_search_results(update.callback_query, context)
+        await send_search_results(update, context)
     else:
         url = context.user_data.get(query.data)
         if url:
             await filmyfly_download_linkmake_view(url, update)
-
+            
 async def delete_message_after_delay(message):
     await asyncio.sleep(120)
     await message.delete()
