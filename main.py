@@ -2,6 +2,7 @@ import os
 import logging
 import asyncio
 import re
+import uuid
 from urllib.parse import urljoin
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler
@@ -22,6 +23,13 @@ CHANNEL_ID = os.getenv('CHANNEL_ID')
 # In-memory storage for user tracking
 users = {}
 search_results = {}
+temp_url_ids = {}  # Dictionary to store temporary URL IDs and their URLs
+
+async def expire_temp_url_id(url_id):
+    await asyncio.sleep(3600)  # Wait for 1 hour (3600 seconds)
+    if url_id in temp_url_ids:
+        del temp_url_ids[url_id]
+        logger.info(f"Expired temporary URL ID: {url_id}")
 
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
@@ -82,11 +90,14 @@ async def send_search_results(update: Update, context: CallbackContext):
     
     # Send the video links with thumbnails
     for index, (video_url, image_url) in enumerate(page_buttons):
-        # Truncate the video_url *only* for the callback data
-        # truncated_video_url = video_url[:50] # REMOVE THIS LINE
-        callback_data = f"watch_{video_url}"
-        if len(callback_data) > 64:
-            callback_data = callback_data[:64]  # Truncate to fit the allowed length
+        # Create a unique ID for the URL
+        url_id = str(uuid.uuid4())
+
+        # Store the video URL in context.user_data
+        context.user_data[url_id] = video_url
+
+        callback_data = f"watch_{url_id}" # Callback data is now the unique ID
+        
 
         try:
             await context.bot.send_photo(
@@ -140,13 +151,21 @@ async def handle_button_click(update: Update, context: CallbackContext):
         users[user_id]['current_page'] += 1
         await send_search_results(update, context)
     elif query.data.startswith("watch_"):
-        video_url = query.data[len("watch_"):]
-        try:
-            await xh_scrape_m3u8_links(video_url, update, context)
-        except Exception as e:
-            logger.error(f"Error in xh_scrape_m3u8_links: {e}")
+        url_id = query.data[len("watch_"):]
+        video_url = context.user_data.get(url_id)
+        if video_url:
+            try:
+                await xh_scrape_m3u8_links(video_url, update, context)
+            except Exception as e:
+                logger.error(f"Error in xh_scrape_m3u8_links: {e}")
+                if update.callback_query and update.callback_query.message:
+                    await update.callback_query.message.reply_text(f"Failed to process video link.")
+                else:
+                    logger.error("Callback query or message is None in handle_button_click")
+        else:
+            logger.warning(f"No video URL found for ID: {url_id}")
             if update.callback_query and update.callback_query.message:
-                await update.callback_query.message.reply_text(f"Failed to process video link.")
+                await update.callback_query.message.reply_text("This video link has expired.")
             else:
                 logger.error("Callback query or message is None in handle_button_click")
     else:
@@ -157,17 +176,21 @@ async def handle_button_click(update: Update, context: CallbackContext):
 
 async def delete_message_after_delay(message):
     await asyncio.sleep(120)
-    await message.delete()
+    try:
+        await message.delete()
+    except Exception as e:
+        logger.warning(f"Failed to delete message: {e}")
 
 async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_id):
     try:
         response = requests.get(url)
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
     except requests.exceptions.RequestException as e:
-        if update.message:
-            await update.message.reply_text(f"Failed to retrieve the page: {e}")
-        elif update.callback_query:
-            await update.callback_query.message.reply_text(f"Failed to retrieve the page: {e}")
+        effective_message = update.effective_message # Use effective_message
+        if effective_message:
+            await effective_message.reply_text(f"Failed to retrieve the page: {e}")
+        else:
+            logger.error("No effective message available in Xhamster_scrap_get_link_thumb")
         return
     
     soup = BeautifulSoup(response.content, 'html.parser')
@@ -195,10 +218,11 @@ async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_
                     image_url = img_tag['src']
                     users[user_id]['search_results'].append((video_url, image_url))
 
-    if update.message:
-        await update.message.reply_text("Links fetched successfully!")
-    elif update.callback_query:
-        await update.callback_query.message.reply_text("Links fetched successfully!")
+    effective_message = update.effective_message # Use effective_message
+    if effective_message:
+        await effective_message.reply_text("Links fetched successfully!")
+    else:
+        logger.error("No effective message available after fetching links.")
     await send_search_results(update, context)
 
 
@@ -242,31 +266,27 @@ async def xh_scrape_m3u8_links(url, update: Update, context: CallbackContext):
                 buttons.append([InlineKeyboardButton("Watch Stream", url=stream_gen_link_xh_to_hsl)])
             
             reply_markup = InlineKeyboardMarkup(buttons)
-            if update.message:
-                await update.message.reply_text("Found m3u8 links:", reply_markup=reply_markup)
-            elif update.callback_query and update.callback_query.message:
-                await update.callback_query.message.reply_text("Found m3u8 links:", reply_markup=reply_markup)
+            effective_message = update.effective_message
+            if effective_message:
+                await effective_message.reply_text("Found m3u8 links:", reply_markup=reply_markup)
             else:
                 logger.error("No message or callback_query.message in xh_scrape_m3u8_links")
         else:
-            if update.message:
-                await update.message.reply_text("No .m3u8 links found on the page")
-            elif update.callback_query and update.callback_query.message:
-                await update.callback_query.message.reply_text("No .m3u8 links found on the page")
+            effective_message = update.effective_message
+            if effective_message:
+                await effective_message.reply_text("No .m3u8 links found on the page")
             else:
                 logger.error("No message or callback_query.message in xh_scrape_m3u8_links")
     except requests.exceptions.RequestException as e:
-        if update.message:
-            await update.message.reply_text(f"Error fetching the page: {e}")
-        elif update.callback_query and update.callback_query.message:
-            await update.callback_query.message.reply_text(f"Error fetching the page: {e}")
+        effective_message = update.effective_message
+        if effective_message:
+            await effective_message.reply_text(f"Error fetching the page: {e}")
         else:
             logger.error("No message or callback_query.message in xh_scrape_m3u8_links")
     except Exception as e:
-        if update.message:
-            await update.message.reply_text(f"An error occurred: {e}")
-        elif update.callback_query and update.callback_query.message:
-            await update.callback_query.message.reply_text(f"An error occurred: {e}")
+        effective_message = update.effective_message
+        if effective_message:
+            await effective_message.reply_text(f"An error occurred: {e}")
         else:
             logger.error("No message or callback_query.message in xh_scrape_m3u8_links")
 
