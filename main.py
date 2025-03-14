@@ -15,7 +15,17 @@ from datetime import datetime, timedelta
 # Add this at the top of the file
 VERIFICATION_REQUIRED = os.getenv('VERIFICATION_REQUIRED', 'true').lower() == 'true'
 
-admin_ids = [] # Add admin user IDs here
+# Get the bot token and channel ID from environment variables
+TOKEN = os.getenv('BOT_TOKEN')
+CHANNEL_ID = os.getenv('CHANNEL_ID')
+
+# In-memory storage for user tracking
+users = {}
+search_results = {}
+temp_url_ids = {}  # Dictionary to store temporary URL IDs and their URLs
+message_deletion_tasks = {}  # Dictionary to store message deletion tasks
+
+admin_ids = [6025969005, 6018060368]
 
 # MongoDB connection
 MONGO_URI = os.getenv('MONGO_URI')  # Get MongoDB URI from environment variables
