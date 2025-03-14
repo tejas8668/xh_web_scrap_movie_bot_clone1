@@ -1,6 +1,8 @@
 import os
 import logging
 import asyncio
+import re
+from urllib.parse import urljoin
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler
 import requests
@@ -67,6 +69,9 @@ def redirection_domain_get(old_url):
 
 async def send_search_results(update: Update, context: CallbackContext):
     user_id = update.effective_user.id if update.message else update.callback_query.from_user.id
+    if user_id not in users or 'search_results' not in users[user_id]:
+        await update.message.reply_text("No search results available.")
+        return
     buttons = users[user_id]['search_results']
     current_page = users[user_id]['current_page']
     
@@ -79,17 +84,24 @@ async def send_search_results(update: Update, context: CallbackContext):
     for index, (video_url, image_url) in enumerate(page_buttons):
         callback_data = f"watch_{video_url}"
         if len(callback_data) > 64:
-            callback_data = callback_data[:64]  # Truncate to fit the allowed length
+            video_url_truncated = video_url[:50]  # Truncate video_url
+            callback_data = f"watch_{video_url_truncated}" # create callback data with truncated url
+            if len(callback_data) > 64:
+                callback_data = callback_data[:64]  # Truncate to fit the allowed length
 
-        await context.bot.send_photo(
-            chat_id=update.effective_chat.id,
-            photo=image_url,
-            caption=f"Video {start + index + 1}: [Watch Video]",
-            parse_mode='Markdown',
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("Watch", callback_data=callback_data)]
-            ])
-        )
+        try:
+            await context.bot.send_photo(
+                chat_id=update.effective_chat.id,
+                photo=image_url,
+                caption=f"Video {start + index + 1}: [Watch Video](https://www.example.com)", # Removed callback data from caption
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("Watch", callback_data=callback_data)]
+                ])
+            )
+        except Exception as e:
+            logger.error(f"Error sending photo: {e}")
+            await update.message.reply_text(f"Failed to send video {start + index + 1}.")
     
     # Add a "Next" button if there are more results
     if end < len(buttons):
@@ -99,7 +111,11 @@ async def send_search_results(update: Update, context: CallbackContext):
         if update.message:
             del_msg = await update.message.reply_text("More results available:", reply_markup=reply_markup)
         elif update.callback_query:
-            del_msg = await update.callback_query.message.reply_text("More results available:", reply_markup=reply_markup)
+            try:
+                del_msg = await update.callback_query.message.reply_text("More results available:", reply_markup=reply_markup)
+            except AttributeError as e:
+                logger.error(f"Error sending 'More results' message: {e}")
+                return # Exit the function if the message cannot be sent
         
         # Schedule the deletion of the message after 120 seconds without blocking
         asyncio.create_task(delete_message_after_delay(del_msg))
@@ -123,7 +139,11 @@ async def handle_button_click(update: Update, context: CallbackContext):
         await send_search_results(update, context)
     elif query.data.startswith("watch_"):
         video_url = query.data[len("watch_"):]
-        await xh_scrape_m3u8_links(video_url, update, context)
+        try:
+            await xh_scrape_m3u8_links(video_url, update, context)
+        except Exception as e:
+            logger.error(f"Error in xh_scrape_m3u8_links: {e}")
+            await update.callback_query.message.reply_text(f"Failed to process video link.")
     else:
         url = context.user_data.get(query.data)
         if url:
@@ -135,10 +155,11 @@ async def delete_message_after_delay(message):
     await message.delete()
 
 async def Xhamster_scrap_get_link_thumb(url, update, context, searching_message_id):
-    response = requests.get(url)
-    
-    if response.status_code != 200:
-        print(f"Failed to retrieve the page. Status code: {response.status_code}")
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+    except requests.exceptions.RequestException as e:
+        await update.message.reply_text(f"Failed to retrieve the page: {e}")
         return
     
     soup = BeautifulSoup(response.content, 'html.parser')
@@ -244,7 +265,7 @@ async def xh_scrap_video_home(update: Update, context: CallbackContext):
     xh_search_query = f"https://xhamster43.desi/search/{xh_user_query}"
     await Xhamster_scrap_get_link_thumb(xh_search_query, update, context, searching_message.message_id)
 
-async def refresh_command(update: Update, context: CallbackContext):
+async def video_command(update: Update, context: CallbackContext):
     searching_message = await update.message.reply_text("Searching...")
     
     xh_home_scrap_query = update.message.text
@@ -262,7 +283,7 @@ def main() -> None:
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("refresh", refresh_command))
+    app.add_handler(CommandHandler("video", video_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, xh_scrap_video_home))
     app.add_handler(CallbackQueryHandler(handle_button_click))
 
