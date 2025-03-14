@@ -83,8 +83,8 @@ async def send_search_results(update: Update, context: CallbackContext):
     # Send the video links with thumbnails
     for index, (video_url, image_url) in enumerate(page_buttons):
         # Truncate the video_url *only* for the callback data
-        truncated_video_url = video_url[:50]
-        callback_data = f"watch_{truncated_video_url}"
+        # truncated_video_url = video_url[:50] # REMOVE THIS LINE
+        callback_data = f"watch_{video_url}"
         if len(callback_data) > 64:
             callback_data = callback_data[:64]  # Truncate to fit the allowed length
 
