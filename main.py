@@ -80,7 +80,7 @@ async def send_search_results(update: Update, context: CallbackContext):
         await context.bot.send_photo(
             chat_id=update.effective_chat.id,
             photo=image_url,
-            caption=f"Video {start + index + 1}: [Watch Video]({video_url})",
+            caption=f"Video {start + index + 1}: [Watch Video]",
             parse_mode='Markdown',
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("Watch", url=video_url)]
