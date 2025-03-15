@@ -49,17 +49,19 @@ def generate_referral_code(user_id):
     return f"{user_id}_{uuid.uuid4().hex[:6]}"
 
 # Function to award premium access (skip verification)
-async def award_premium_access(user_id, update: Update, context: CallbackContext):
+# Function to award premium access (skip verification)
+async def award_premium_access(user_id, query: CallbackQuery, context: CallbackContext):
     users_collection.update_one(
         {"user_id": user_id},
         {"$set": {"verified_until": datetime.now() + timedelta(days=1)}},
         upsert=True
     )
-    await update.message.reply_text(
+    await query.message.reply_text(
         "🎉 **Premium Access Unlocked!**\n\n"
         "You have earned premium access and can use the bot without verification for the next 24 hours.",
         parse_mode='Markdown'
     )
+
 
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
@@ -560,7 +562,7 @@ async def unlock_premium(update: Update, context: CallbackContext) -> None:
     referral_points = existing_user.get("referral_points", 0)
 
     if referral_points >= PREMIUM_POINTS:
-        await award_premium_access(user_id, update, context)
+        await award_premium_access(user_id, query, context)  # Pass query instead of update
         # Reset referral points after awarding premium access
         users_collection.update_one(
             {"user_id": user_id},
@@ -580,6 +582,7 @@ def main() -> None:
     app.add_handler(CommandHandler("reffer", referral_command))  # Add the new handler
     app.add_handler(CommandHandler("video", video_command))
     app.add_handler(CommandHandler("points", points_command))  # Add the new handler
+    app.add_handler(CommandHandler("unlock", unlock_premium))
     app.add_handler(CallbackQueryHandler(unlock_premium, pattern="^unlock_premium$"))  # Add the new handler
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, xh_scrap_video_home))
     app.add_handler(CallbackQueryHandler(handle_button_click))
