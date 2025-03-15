@@ -156,10 +156,13 @@ async def start(update: Update, context: CallbackContext) -> None:
             "🔥 Welcome My Friend 🔥\n\n"
             "🔞 Your ultimate destination for exclusive adult content!\n\n💦 What You Get Here:\n✅ HD Exclusive Videos\n✅ Daily Hot Updates 🔥\n✅ Private & Premium Content 💎\n✅ Exclusive Requests 📝\n\n"
             "🚀 Start Exploring Now!\n\n"
-            f"👉 Use this referral link to invite friends: https://t.me/{context.bot.username}?start={existing_user['referral_code'] if existing_user and 'referral_code' in existing_user else generate_referral_code(user_id)}\n"
+            "📌 Reffer The Bot Link To Skip The Verification\n"
+            "📌 Use /referral to Get Referral Link\n\n"
             "👉 Send /start to Start\n👉 Use /video for Get Video\n👉 You Can Also Search Video To Sending A Message To Bot\n\n🔥 Popular Search 🔥\n👉 `Russian`\n👉 `Hot Girls`\n👉 `DBSM`\n👉 `Sex Videos`"
         ),
         parse_mode='Markdown'
+    )
+    # Remove parse_mode='Markdown'
     )
     # Do not schedule deletion for the /start message
     # asyncio.create_task(delete_message_after_delay(start_message))
