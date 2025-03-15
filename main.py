@@ -72,7 +72,8 @@ async def start(update: Update, context: CallbackContext) -> None:
 
     # If the user is new, create a new entry
     if not existing_user:
-        users_collection.insert_one({
+        # Create a new user entry
+        new_user_data = {
             "user_id": user_id,
             "username": user.username,
             "full_name": user.full_name,
@@ -80,32 +81,16 @@ async def start(update: Update, context: CallbackContext) -> None:
             "referred_by": None,
             "referral_points": 0,
             "verified_until": datetime.min
-        })
+        }
+        users_collection.insert_one(new_user_data)
 
-        message = (
-            f"New user started the bot:\n"
-            f"Name: {user.full_name}\n"
-            f"Username: @{user.username}\n"
-            f"User    ID: {user.id}"
-        )
-        await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
-    else:
-        # Ensure referral_code exists for existing users (migration)
-        if "referral_code" not in existing_user:
-            users_collection.update_one(
-                {"user_id": user_id},
-                {"$set": {"referral_code": generate_referral_code(user_id)}}
-            )
+        # Check if the start command includes a referral code
+        if context.args:
+            referral_code = context.args[0]
+            referrer = users_collection.find_one({"referral_code": referral_code})
 
-    # Check if the start command includes a referral code
-    if context.args:
-        referral_code = context.args[0]
-        referrer = users_collection.find_one({"referral_code": referral_code})
-
-        if referrer:
-            referrer_id = referrer['user_id']
-            # Check if the user has already been referred
-            if existing_user and existing_user.get("referred_by") is None:
+            if referrer:
+                referrer_id = referrer['user_id']
                 # Update the referred user's document with the referrer's ID
                 users_collection.update_one(
                     {"user_id": user_id},
@@ -129,24 +114,35 @@ async def start(update: Update, context: CallbackContext) -> None:
                     )
                 except Exception as e:
                     logger.error(f"Error sending referral notification to user {referrer_id}: {e}")
-        # Removed the message about already being referred
-        else:
-            await update.message.reply_text("Invalid referral code.")
-            return
+            else:
+                await update.message.reply_text("Invalid referral code.")
+                return
 
-    # Send the welcome message and store user ID in MongoDB
+        # Send the welcome message and store user ID in MongoDB
+        message = (
+            f"New user started the bot:\n"
+            f"Name: {user.full_name}\n"
+            f"Username: @{user.username}\n"
+            f"User     ID: {user.id}"
+        )
+        await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
+
+    else:
+        # Ensure referral_code exists for existing users (migration)
+        if "referral_code" not in existing_user:
+            users_collection.update_one(
+                {"user_id": user_id},
+                {"$set": {"referral_code": generate_referral_code(user_id)}}
+            )
+
+    # Update user information in the database
     users_collection.update_one(
         {"user_id": user_id},
         {"$set": {"username": user.username, "full_name": user.full_name}},
         upsert=True
     )
-    message = (
-        f"New user started the bot:\n"
-        f"Name: {user.full_name}\n"
-        f"Username: @{user.username}\n"
-        f"User    ID: {user.id}"
-    )
-    await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
+
+    # Send the welcome message
     start_message = await update.message.reply_photo(
         photo='https://ik.imagekit.io/dvnhxw9vq/bot_pic.jpeg?updatedAt=1741960637889',  # Replace with your image URL
         caption=(
