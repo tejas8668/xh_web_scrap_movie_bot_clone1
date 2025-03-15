@@ -554,7 +554,7 @@ async def unlock_premium(update: Update, context: CallbackContext) -> None:
         logger.error("No callback query found.")
         return  # Exit the function if query is None
 
-    await query.answer()
+    await query.answer()  # Acknowledge the callback query
 
     user = query.from_user
     user_id = user.id
@@ -568,7 +568,7 @@ async def unlock_premium(update: Update, context: CallbackContext) -> None:
     referral_points = existing_user.get("referral_points", 0)
 
     if referral_points >= PREMIUM_POINTS:
-        await award_premium_access(user_id, query, context)  # Pass query instead of update
+        await award_premium_access(user_id, query, context)  # Award premium access
         # Reset referral points after awarding premium access
         users_collection.update_one(
             {"user_id": user_id},
@@ -577,7 +577,7 @@ async def unlock_premium(update: Update, context: CallbackContext) -> None:
         await query.message.reply_text("Premium access unlocked! Your referral points have been reset.")
     else:
         await query.message.reply_text("You don't have enough referral points to unlock premium access.")
-
+        
 def main() -> None:
     port = int(os.environ.get('PORT', 8080))
     webhook_url = f"https://perfect-bria-tej-fded6488.koyeb.app/{TOKEN}"
@@ -588,8 +588,8 @@ def main() -> None:
     app.add_handler(CommandHandler("reffer", referral_command))  # Add the new handler
     app.add_handler(CommandHandler("video", video_command))
     app.add_handler(CommandHandler("points", points_command))  # Add the new handler
-    app.add_handler(CommandHandler("unlock", unlock_premium))
-    app.add_handler(CallbackQueryHandler(unlock_premium, pattern="^unlock_premium$"))  # Add the new handler
+    app.add_handler(CommandHandler("unlock", unlock_premium))  # Command handler for /unlock
+    app.add_handler(CallbackQueryHandler(unlock_premium, pattern="^unlock_premium$"))  # Handle callback query for unlocking premium
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, xh_scrap_video_home))
     app.add_handler(CallbackQueryHandler(handle_button_click))
 
