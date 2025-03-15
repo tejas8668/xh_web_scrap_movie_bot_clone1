@@ -160,7 +160,7 @@ async def start(update: Update, context: CallbackContext) -> None:
     )
     # Do not schedule deletion for the /start message
 
-async def referral_command(update: Update, context: CallbackContext) -> None:
+"""async def referral_command(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
     user_id = user.id
 
@@ -174,7 +174,40 @@ async def referral_command(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text(
         f"Your referral link: {referral_link}\n\n"
         "Share this link with your friends to earn rewards!"
+    )"""
+
+async def referral_command(update: Update, context: CallbackContext) -> None:
+    # Check if the call is from a callback query or a command
+    if update.callback_query:
+        query = update.callback_query
+        await query.answer()  # Acknowledge the callback query
+        user = query.from_user  # Get user from the callback query
+    else:
+        user = update.effective_user  # Get user from the command
+
+    user_id = user.id
+
+    existing_user = users_collection.find_one({"user_id": user_id})
+
+    if not existing_user:
+        message_text = "You need to start the bot first using /start."
+        if update.callback_query:
+            await query.message.reply_text(message_text)
+        else:
+            await update.message.reply_text(message_text)
+        return
+
+    referral_link = f"https://t.me/{context.bot.username}?start={existing_user['referral_code']}"
+
+    message_text = (
+        f"Your referral link: {referral_link}\n\n"
+        "Share this link with your friends to earn rewards!"
     )
+
+    if update.callback_query:
+        await query.message.reply_text(message_text)
+    else:
+        await update.message.reply_text(message_text)
 
 async def check_verification(user_id: int) -> bool:
     user = users_collection.find_one({"user_id": user_id})
@@ -463,7 +496,8 @@ async def xh_scrap_video_home(update: Update, context: CallbackContext):
             # User ko verify karne ki zaroorat hai
             btn = [
                 [InlineKeyboardButton("Verify", url=await get_token(user.id, context.bot.username))],
-                [InlineKeyboardButton("How To Open Link & Verify", url="https://t.me/how_to_download_0011")]
+                [InlineKeyboardButton("How To Open Link & Verify", url="https://t.me/how_to_download_0011")],
+                [InlineKeyboardButton("reffer", callback_data="reffer")]  # Corrected Referral Button
             ]
             await update.message.reply_text(
                 text="🚨 <b>Token Expired!</b>\n\n"
@@ -503,7 +537,8 @@ async def video_command(update: Update, context: CallbackContext):
             # User ko verify karne ki zaroorat hai
             btn = [
                 [InlineKeyboardButton("Verify", url=await get_token(user.id, context.bot.username))],
-                [InlineKeyboardButton("How To Open Link & Verify", url="https://t.me/how_to_download_0011")]
+                [InlineKeyboardButton("How To Open Link & Verify", url="https://t.me/how_to_download_0011")],
+                [InlineKeyboardButton("reffer", callback_data="reffer")]  # Corrected Referral Button
             ]
             await update.message.reply_text(
                 text="🚨 <b>Token Expired!</b>\n\n"
@@ -595,6 +630,7 @@ def main() -> None:
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("reffer", referral_command))  # Add the new handler
+    app.add_handler(CallbackQueryHandler(referral_command, pattern="^reffer$"))  # Handle callback query for unlocking premium
     app.add_handler(CommandHandler("video", video_command))
     app.add_handler(CommandHandler("points", points_command))  # Add the new handler
     #app.add_handler(CommandHandler("unlock", unlock_premium))  # Command handler for /unlock
