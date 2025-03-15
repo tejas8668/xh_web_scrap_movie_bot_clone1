@@ -30,7 +30,7 @@ admin_ids = [6025969005, 6018060368]
 # MongoDB connection
 MONGO_URI = os.getenv('MONGO_URI')  # Get MongoDB URI from environment variables
 client = MongoClient(MONGO_URI)
-db = client['xh_bot'] # Updated database name
+db = client['xh_bot']  # Updated database name
 users_collection = db['users']
 
 # Referral points reward
@@ -86,7 +86,7 @@ async def start(update: Update, context: CallbackContext) -> None:
             f"New user started the bot:\n"
             f"Name: {user.full_name}\n"
             f"Username: @{user.username}\n"
-            f"User   ID: {user.id}"
+            f"User    ID: {user.id}"
         )
         await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
     else:
@@ -129,8 +129,7 @@ async def start(update: Update, context: CallbackContext) -> None:
                     )
                 except Exception as e:
                     logger.error(f"Error sending referral notification to user {referrer_id}: {e}")
-            else:
-                await update.message.reply_text("You have already been referred by someone.")
+        # Removed the message about already being referred
         else:
             await update.message.reply_text("Invalid referral code.")
             return
@@ -145,7 +144,7 @@ async def start(update: Update, context: CallbackContext) -> None:
         f"New user started the bot:\n"
         f"Name: {user.full_name}\n"
         f"Username: @{user.username}\n"
-        f"User   ID: {user.id}"
+        f"User    ID: {user.id}"
     )
     await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
     start_message = await update.message.reply_photo(
@@ -158,11 +157,8 @@ async def start(update: Update, context: CallbackContext) -> None:
             "📌 Use /reffer to Get Referral Link\n\n"
             "👉 Send /start to Start\n👉 Use /video for Get Video\n👉 You Can Also Search Video To Sending A Message To Bot\n\n🔥 Popular Search 🔥\n👉 `Russian`\n👉 `Hot Girls`\n👉 `DBSM`\n👉 `Sex Videos`"
         ),
-       # Remove parse_mode='Markdown'
     )
-    # Remove parse_mode='Markdown'
     # Do not schedule deletion for the /start message
-    # asyncio.create_task(delete_message_after_delay(start_message))
 
 async def referral_command(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
@@ -179,7 +175,6 @@ async def referral_command(update: Update, context: CallbackContext) -> None:
         f"Your referral link: {referral_link}\n\n"
         "Share this link with your friends to earn rewards!"
     )
-
 
 async def check_verification(user_id: int) -> bool:
     user = users_collection.find_one({"user_id": user_id})
@@ -199,9 +194,6 @@ async def get_token(user_id: int, bot_username: str) -> str:
     # Create verification link
     verification_link = f"https://telegram.me/{bot_username}?start={token}"
     # Shorten verification link using shorten_url_link function
-    #shortened_link = shorten_url_link(verification_link) # Removed shorten_url_link as it's not defined
-    # return verification_link # Return the full verification link
-    # Shorten verification link using shorten_url_link function
     shortened_link = shorten_url_link(verification_link)
     return shortened_link
 
@@ -212,7 +204,6 @@ def shorten_url_link(url):
         'api': api_key,
         'url': url
     }
-    # Yahan pe custom certificate bundle ka path specify karo
     response = requests.get(api_url, params=params, verify=False)
     if response.status_code == 200:
         data = response.json()
@@ -260,7 +251,6 @@ async def send_search_results(update: Update, context: CallbackContext):
 
         callback_data = f"watch_{url_id}" # Callback data is now the unique ID
         
-
         try:
             sent_message = await context.bot.send_photo(
                 chat_id=update.effective_chat.id,
@@ -296,10 +286,6 @@ async def send_search_results(update: Update, context: CallbackContext):
             except AttributeError as e:
                 logger.error(f"Error sending 'More results' message: {e}")
                 return # Exit the function if the message cannot be sent
-        
-        # Schedule the deletion of the message after 120 seconds without blocking
-        #asyncio.create_task(delete_message_after_delay(del_msg))
-
 
 async def handle_button_click(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -341,7 +327,6 @@ async def handle_button_click(update: Update, context: CallbackContext):
         url = context.user_data.get(query.data)
         if url:
             await filmyfly_download_linkmake_view(url, update)
-
 
 async def delete_message_after_delay(message):
     await asyncio.sleep(300)  # 5 minutes = 300 seconds
@@ -503,8 +488,6 @@ async def xh_scrap_video_home(update: Update, context: CallbackContext):
         asyncio.create_task(delete_message_after_delay(no_query_message))
         return
 
-    #filmyfly_domain = redirection_domain_get("https://xhamster43.desi/")
-    #filmyfly_final = f"{filmyfly_domain}site-1.html?to-search={xh_home_scrap_query}"
     xh_search_query = f"https://xhamster43.desi/search/{xh_user_query}"
     await Xhamster_scrap_get_link_thumb(xh_search_query, update, context, searching_message.message_id)
 
@@ -598,10 +581,10 @@ def main() -> None:
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("reffer", referral_command)) # Add the new handler
+    app.add_handler(CommandHandler("reffer", referral_command))  # Add the new handler
     app.add_handler(CommandHandler("video", video_command))
     app.add_handler(CommandHandler("points", points_command))  # Add the new handler
-    app.add_handler(CallbackQueryHandler(unlock_premium, pattern="^unlock_premium$")) # Add the new handler
+    app.add_handler(CallbackQueryHandler(unlock_premium, pattern="^unlock_premium$"))  # Add the new handler
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, xh_scrap_video_home))
     app.add_handler(CallbackQueryHandler(handle_button_click))
 
