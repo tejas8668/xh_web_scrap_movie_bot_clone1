@@ -11,6 +11,8 @@ from bs4 import BeautifulSoup
 import urllib.parse
 from pymongo import MongoClient
 from datetime import datetime, timedelta
+from telegram import CallbackQuery
+
 
 # Add this at the top of the file
 VERIFICATION_REQUIRED = os.getenv('VERIFICATION_REQUIRED', 'true').lower() == 'true'
