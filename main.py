@@ -33,6 +33,10 @@ client = MongoClient(MONGO_URI)
 db = client['xh_bot'] # Updated database name
 users_collection = db['users']
 
+# Referral points reward
+REFERRAL_POINTS = 25
+PREMIUM_POINTS = 50
+
 # Configure logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -40,39 +44,102 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Function to generate a unique referral code
+def generate_referral_code(user_id):
+    return f"{user_id}_{uuid.uuid4().hex[:6]}"
+
+# Function to award premium access (skip verification)
+async def award_premium_access(user_id, update: Update, context: CallbackContext):
+    users_collection.update_one(
+        {"user_id": user_id},
+        {"$set": {"verified_until": datetime.now() + timedelta(days=1)}},
+        upsert=True
+    )
+    await update.message.reply_text(
+        "🎉 **Premium Access Unlocked!**\n\n"
+        "You have earned premium access and can use the bot without verification for the next 24 hours.",
+        parse_mode='Markdown'
+    )
+
 # Define the /start command handler
 async def start(update: Update, context: CallbackContext) -> None:
     logger.info("Received /start command")
     user = update.effective_user
+    user_id = user.id
 
-    # Check if the start command includes a token (for verification)
-    if context.args:
-        token = context.args[0]
-        user_data = users_collection.find_one({"user_id": user.id, "token": token})
+    # Check if the user exists in the database
+    existing_user = users_collection.find_one({"user_id": user_id})
 
-        if user_data:
-            # Update the user's verification status
+    # If the user is new, create a new entry
+    if not existing_user:
+        users_collection.insert_one({
+            "user_id": user_id,
+            "username": user.username,
+            "full_name": user.full_name,
+            "referral_code": generate_referral_code(user_id),
+            "referred_by": None,
+            "referral_points": 0,
+            "verified_until": datetime.min
+        })
+
+        message = (
+            f"New user started the bot:\n"
+            f"Name: {user.full_name}\n"
+            f"Username: @{user.username}\n"
+            f"User   ID: {user.id}"
+        )
+        await context.bot.send_message(chat_id=CHANNEL_ID, text=message)
+    else:
+        # Ensure referral_code exists for existing users (migration)
+        if "referral_code" not in existing_user:
             users_collection.update_one(
-                {"user_id": user.id},
-                {"$set": {"verified_until": datetime.now() + timedelta(days=1)}},
-                upsert=True
+                {"user_id": user_id},
+                {"$set": {"referral_code": generate_referral_code(user_id)}}
             )
-            await update.message.reply_text(
-                "✅ **Verification Successful!**\n\n"
-                "You can now use the bot for the next 24 hours without any restrictions.",
-                parse_mode='Markdown'
-            )
-        else:
-            await update.message.reply_text(
-                "❌ **Invalid Token!**\n\n"
-                "Please try verifying again.",
-                parse_mode='Markdown'
-            )
-        return
 
-    # If no token, send the welcome message and store user ID in MongoDB
+    # Check if the start command includes a referral code
+    if context.args:
+        referral_code = context.args[0]
+        referrer = users_collection.find_one({"referral_code": referral_code})
+
+        if referrer:
+            referrer_id = referrer['user_id']
+            # Check if the user has already been referred
+            if existing_user and existing_user.get("referred_by") is None:
+                # Update the referred user's document with the referrer's ID
+                users_collection.update_one(
+                    {"user_id": user_id},
+                    {"$set": {"referred_by": referrer_id}}
+                )
+
+                # Increment the referrer's referral points
+                users_collection.update_one(
+                    {"user_id": referrer_id},
+                    {"$inc": {"referral_points": REFERRAL_POINTS}}
+                )
+
+                await update.message.reply_text(
+                    f"🎉 You have been referred by {referrer['username']}! {REFERRAL_POINTS} points added to {referrer['username']}'s account."
+                )
+
+                # Check if the referrer has enough points for premium access
+                updated_referrer = users_collection.find_one({"user_id": referrer_id})
+                if updated_referrer['referral_points'] >= PREMIUM_POINTS:
+                    await award_premium_access(referrer_id, update, context)
+                    # Reset referral points after awarding premium access
+                    users_collection.update_one(
+                        {"user_id": referrer_id},
+                        {"$set": {"referral_points": 0}}
+                    )
+            else:
+                await update.message.reply_text("You have already been referred by someone.")
+        else:
+            await update.message.reply_text("Invalid referral code.")
+            return
+
+    # Send the welcome message and store user ID in MongoDB
     users_collection.update_one(
-        {"user_id": user.id},
+        {"user_id": user_id},
         {"$set": {"username": user.username, "full_name": user.full_name}},
         upsert=True
     )
@@ -89,12 +156,30 @@ async def start(update: Update, context: CallbackContext) -> None:
             "🔥 Welcome My Friend 🔥\n\n"
             "🔞 Your ultimate destination for exclusive adult content!\n\n💦 What You Get Here:\n✅ HD Exclusive Videos\n✅ Daily Hot Updates 🔥\n✅ Private & Premium Content 💎\n✅ Exclusive Requests 📝\n\n"
             "🚀 Start Exploring Now!\n\n"
+            f"👉 Use this referral link to invite friends: https://t.me/{context.bot.username}?start={existing_user['referral_code'] if existing_user and 'referral_code' in existing_user else generate_referral_code(user_id)}\n"
             "👉 Send /start to Start\n👉 Use /video for Get Video\n👉 You Can Also Search Video To Sending A Message To Bot\n\n🔥 Popular Search 🔥\n👉 `Russian`\n👉 `Hot Girls`\n👉 `DBSM`\n👉 `Sex Videos`"
         ),
         parse_mode='Markdown'
     )
     # Do not schedule deletion for the /start message
     # asyncio.create_task(delete_message_after_delay(start_message))
+
+async def referral_command(update: Update, context: CallbackContext) -> None:
+    user = update.effective_user
+    user_id = user.id
+
+    existing_user = users_collection.find_one({"user_id": user_id})
+
+    if not existing_user:
+        await update.message.reply_text("You need to start the bot first using /start.")
+        return
+
+    referral_link = f"https://t.me/{context.bot.username}?start={existing_user['referral_code']}"
+    await update.message.reply_text(
+        f"Your referral link: {referral_link}\n\n"
+        "Share this link with your friends to earn rewards!"
+    )
+
 
 async def check_verification(user_id: int) -> bool:
     user = users_collection.find_one({"user_id": user_id})
@@ -468,6 +553,7 @@ def main() -> None:
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("referral", referral_command)) # Add the new handler
     app.add_handler(CommandHandler("video", video_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, xh_scrap_video_home))
     app.add_handler(CallbackQueryHandler(handle_button_click))
