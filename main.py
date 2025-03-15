@@ -548,7 +548,7 @@ async def video_command(update: Update, context: CallbackContext):
 
 def main() -> None:
     port = int(os.environ.get('PORT', 8080))
-    webhook_url = f"https://delicate-jyoti-toxicc-188b9b28.koyeb.app/{TOKEN}"
+    webhook_url = f"https://perfect-bria-tej-fded6488.koyeb.app/{TOKEN}"
 
     app = ApplicationBuilder().token(TOKEN).build()
 
