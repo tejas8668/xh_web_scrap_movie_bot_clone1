@@ -157,7 +157,7 @@ async def start(update: Update, context: CallbackContext) -> None:
             "🔞 Your ultimate destination for exclusive adult content!\n\n💦 What You Get Here:\n✅ HD Exclusive Videos\n✅ Daily Hot Updates 🔥\n✅ Private & Premium Content 💎\n✅ Exclusive Requests 📝\n\n"
             "🚀 Start Exploring Now!\n\n"
             "📌 Reffer The Bot Link To Skip The Verification\n"
-            "📌 Use /referral to Get Referral Link\n\n"
+            "📌 Use /reffer to Get Referral Link\n\n"
             "👉 Send /start to Start\n👉 Use /video for Get Video\n👉 You Can Also Search Video To Sending A Message To Bot\n\n🔥 Popular Search 🔥\n👉 `Russian`\n👉 `Hot Girls`\n👉 `DBSM`\n👉 `Sex Videos`"
         ),
         parse_mode='Markdown'
@@ -556,7 +556,7 @@ def main() -> None:
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("referral", referral_command)) # Add the new handler
+    app.add_handler(CommandHandler("reffer", referral_command)) # Add the new handler
     app.add_handler(CommandHandler("video", video_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, xh_scrap_video_home))
     app.add_handler(CallbackQueryHandler(handle_button_click))
