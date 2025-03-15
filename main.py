@@ -118,10 +118,7 @@ async def start(update: Update, context: CallbackContext) -> None:
                     {"$inc": {"referral_points": REFERRAL_POINTS}}
                 )
 
-                await update.message.reply_text(
-                    f"🎉 You have been referred by {referrer['username']}! {REFERRAL_POINTS} points added to {referrer['username']}'s account."
-                )
-                 # Send a message to the referrer
+                # Send a message to the referrer
                 try:
                     await context.bot.send_message(
                         chat_id=referrer_id,
@@ -132,17 +129,6 @@ async def start(update: Update, context: CallbackContext) -> None:
                     )
                 except Exception as e:
                     logger.error(f"Error sending referral notification to user {referrer_id}: {e}")
-
-
-                # Check if the referrer has enough points for premium access
-                updated_referrer = users_collection.find_one({"user_id": referrer_id})
-                if updated_referrer['referral_points'] >= PREMIUM_POINTS:
-                    await award_premium_access(referrer_id, update, context)
-                    # Reset referral points after awarding premium access
-                    users_collection.update_one(
-                        {"user_id": referrer_id},
-                        {"$set": {"referral_points": 0}}
-                    )
             else:
                 await update.message.reply_text("You have already been referred by someone.")
         else:
@@ -571,7 +557,39 @@ async def points_command(update: Update, context: CallbackContext) -> None:
         return
 
     referral_points = existing_user.get("referral_points", 0)
-    await update.message.reply_text(f"Your referral points: {referral_points}")
+
+    # Add unlock button if user has enough points
+    if referral_points >= PREMIUM_POINTS:
+        keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Unlock Premium", callback_data="unlock_premium")]])
+        await update.message.reply_text(f"Your referral points: {referral_points}\nYou have enough points to unlock premium access! Click the button below to unlock.", reply_markup=keyboard)
+    else:
+        await update.message.reply_text(f"Your referral points: {referral_points}")
+
+async def unlock_premium(update: Update, context: CallbackContext) -> None:
+    query = update.callback_query
+    await query.answer()
+
+    user = query.from_user
+    user_id = user.id
+
+    existing_user = users_collection.find_one({"user_id": user_id})
+
+    if not existing_user:
+        await query.message.reply_text("You need to start the bot first using /start.")
+        return
+
+    referral_points = existing_user.get("referral_points", 0)
+
+    if referral_points >= PREMIUM_POINTS:
+        await award_premium_access(user_id, update, context)
+        # Reset referral points after awarding premium access
+        users_collection.update_one(
+            {"user_id": user_id},
+            {"$set": {"referral_points": 0}}
+        )
+        await query.message.reply_text("Premium access unlocked! Your referral points have been reset.")
+    else:
+        await query.message.reply_text("You don't have enough referral points to unlock premium access.")
 
 def main() -> None:
     port = int(os.environ.get('PORT', 8080))
@@ -583,6 +601,7 @@ def main() -> None:
     app.add_handler(CommandHandler("reffer", referral_command)) # Add the new handler
     app.add_handler(CommandHandler("video", video_command))
     app.add_handler(CommandHandler("points", points_command))  # Add the new handler
+    app.add_handler(CallbackQueryHandler(unlock_premium, pattern="^unlock_premium$")) # Add the new handler
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, xh_scrap_video_home))
     app.add_handler(CallbackQueryHandler(handle_button_click))
 
