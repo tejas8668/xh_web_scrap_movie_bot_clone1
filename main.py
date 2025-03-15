@@ -121,6 +121,18 @@ async def start(update: Update, context: CallbackContext) -> None:
                 await update.message.reply_text(
                     f"🎉 You have been referred by {referrer['username']}! {REFERRAL_POINTS} points added to {referrer['username']}'s account."
                 )
+                 # Send a message to the referrer
+                try:
+                    await context.bot.send_message(
+                        chat_id=referrer_id,
+                        text=(
+                            "🎉 You successfully completed 1 referral and earned "
+                            f"{REFERRAL_POINTS} points! Check your points using /points command."
+                        )
+                    )
+                except Exception as e:
+                    logger.error(f"Error sending referral notification to user {referrer_id}: {e}")
+
 
                 # Check if the referrer has enough points for premium access
                 updated_referrer = users_collection.find_one({"user_id": referrer_id})
@@ -160,7 +172,7 @@ async def start(update: Update, context: CallbackContext) -> None:
             "📌 Use /reffer to Get Referral Link\n\n"
             "👉 Send /start to Start\n👉 Use /video for Get Video\n👉 You Can Also Search Video To Sending A Message To Bot\n\n🔥 Popular Search 🔥\n👉 `Russian`\n👉 `Hot Girls`\n👉 `DBSM`\n👉 `Sex Videos`"
         ),
-        parse_mode='Markdown'
+       # Remove parse_mode='Markdown'
     )
     # Remove parse_mode='Markdown'
     # Do not schedule deletion for the /start message
@@ -548,6 +560,19 @@ async def video_command(update: Update, context: CallbackContext):
     xh_home_crap_domain = "https://xhamster43.desi/"
     await Xhamster_scrap_get_link_thumb(xh_home_crap_domain, update, context, searching_message.message_id)
 
+async def points_command(update: Update, context: CallbackContext) -> None:
+    user = update.effective_user
+    user_id = user.id
+
+    existing_user = users_collection.find_one({"user_id": user_id})
+
+    if not existing_user:
+        await update.message.reply_text("You need to start the bot first using /start.")
+        return
+
+    referral_points = existing_user.get("referral_points", 0)
+    await update.message.reply_text(f"Your referral points: {referral_points}")
+
 def main() -> None:
     port = int(os.environ.get('PORT', 8080))
     webhook_url = f"https://perfect-bria-tej-fded6488.koyeb.app/{TOKEN}"
@@ -557,6 +582,7 @@ def main() -> None:
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("reffer", referral_command)) # Add the new handler
     app.add_handler(CommandHandler("video", video_command))
+    app.add_handler(CommandHandler("points", points_command))  # Add the new handler
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, xh_scrap_video_home))
     app.add_handler(CallbackQueryHandler(handle_button_click))
 
