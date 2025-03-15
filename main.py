@@ -549,34 +549,43 @@ async def points_command(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text(f"Your referral points: {referral_points}")
 
 async def unlock_premium(update: Update, context: CallbackContext) -> None:
-    query = update.callback_query
-    if query is None:
-        logger.error("No callback query found.")
-        return  # Exit the function if query is None
+    # Check if the call is from a callback query or a command
+    if update.callback_query:
+        query = update.callback_query
+        await query.answer()  # Acknowledge the callback query
+        user = query.from_user  # Get user from the callback query
+    else:
+        user = update.effective_user  # Get user from the command
 
-    await query.answer()  # Acknowledge the callback query
-
-    user = query.from_user
     user_id = user.id
 
     existing_user = users_collection.find_one({"user_id": user_id})
 
     if not existing_user:
-        await query.message.reply_text("You need to start the bot first using /start.")
+        if update.callback_query:
+            await query.message.reply_text("You need to start the bot first using /start.")
+        else:
+            await update.message.reply_text("You need to start the bot first using /start.")
         return
 
     referral_points = existing_user.get("referral_points", 0)
 
     if referral_points >= PREMIUM_POINTS:
-        await award_premium_access(user_id, query, context)  # Award premium access
+        await award_premium_access(user_id, query if update.callback_query else None, context)  # Award premium access
         # Reset referral points after awarding premium access
         users_collection.update_one(
             {"user_id": user_id},
             {"$set": {"referral_points": 0}}
         )
-        await query.message.reply_text("Premium access unlocked! Your referral points have been reset.")
+        if update.callback_query:
+            await query.message.reply_text("Premium access unlocked! Your referral points have been reset.")
+        else:
+            await update.message.reply_text("Premium access unlocked! Your referral points have been reset.")
     else:
-        await query.message.reply_text("You don't have enough referral points to unlock premium access.")
+        if update.callback_query:
+            await query.message.reply_text("You don't have enough referral points to unlock premium access.")
+        else:
+            await update.message.reply_text("You don't have enough referral points to unlock premium access.")
         
 def main() -> None:
     port = int(os.environ.get('PORT', 8080))
@@ -588,6 +597,8 @@ def main() -> None:
     app.add_handler(CommandHandler("reffer", referral_command))  # Add the new handler
     app.add_handler(CommandHandler("video", video_command))
     app.add_handler(CommandHandler("points", points_command))  # Add the new handler
+    #app.add_handler(CommandHandler("unlock", unlock_premium))  # Command handler for /unlock
+    #app.add_handler(CallbackQueryHandler(unlock_premium, pattern="^unlock_premium$"))  # Handle callback query for unlocking premium
     app.add_handler(CommandHandler("unlock", unlock_premium))  # Command handler for /unlock
     app.add_handler(CallbackQueryHandler(unlock_premium, pattern="^unlock_premium$"))  # Handle callback query for unlocking premium
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, xh_scrap_video_home))
