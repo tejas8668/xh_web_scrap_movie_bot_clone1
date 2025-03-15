@@ -153,9 +153,9 @@ async def start(update: Update, context: CallbackContext) -> None:
             "🔥 Welcome My Friend 🔥\n\n"
             "🔞 Your ultimate destination for exclusive adult content!\n\n💦 What You Get Here:\n✅ HD Exclusive Videos\n✅ Daily Hot Updates 🔥\n✅ Private & Premium Content 💎\n✅ Exclusive Requests 📝\n\n"
             "🚀 Start Exploring Now!\n\n"
-            "📌 Reffer The Bot Link To Skip The Verification\n"
-            "📌 Use /reffer to Get Referral Link\n\n"
-            "👉 Send /start to Start\n👉 Use /video for Get Video\n👉 You Can Also Search Video To Sending A Message To Bot\n\n🔥 Popular Search 🔥\n👉 `Russian`\n👉 `Hot Girls`\n👉 `DBSM`\n👉 `Sex Videos`"
+            "👉 Send /start to Start\n👉 Use /video for Get Video\n👉 You Can Also Search Video To Sending A Message To Bot\n\n🔥 Popular Search 🔥\n👉 `Russian`\n👉 `Hot Girls`\n👉 `DBSM`\n👉 `Sex Videos`\n\n"
+            "📌 Reffer The Bot Link Unlock All Bot Primium Feature\n"
+            "📌 Use /reffer Command To Know More\n\n"
         ),
     )
     # Do not schedule deletion for the /start message
@@ -200,8 +200,8 @@ async def referral_command(update: Update, context: CallbackContext) -> None:
     referral_link = f"https://t.me/{context.bot.username}?start={existing_user['referral_code']}"
 
     message_text = (
-        f"Your referral link: {referral_link}\n\n"
-        "Share this link with your friends to earn rewards!"
+        f"Your referral link:\n{referral_link}\n\n"
+        "Share this link with your friends to earn rewards!\n\nGet 25 Points Per Complete reffer\nYou Need 50 Points To Unlock (Skip) One Verification\n\nShare And Use All Bot Primium Feature Without Ads Or Verify"
     )
 
     if update.callback_query:
@@ -497,7 +497,7 @@ async def xh_scrap_video_home(update: Update, context: CallbackContext):
             btn = [
                 [InlineKeyboardButton("Verify", url=await get_token(user.id, context.bot.username))],
                 [InlineKeyboardButton("How To Open Link & Verify", url="https://t.me/how_to_download_0011")],
-                [InlineKeyboardButton("reffer", callback_data="reffer")]  # Corrected Referral Button
+                [InlineKeyboardButton("Reffer To Skip Verify", callback_data="reffer")]  # Corrected Referral Button
             ]
             await update.message.reply_text(
                 text="🚨 <b>Token Expired!</b>\n\n"
@@ -506,6 +506,7 @@ async def xh_scrap_video_home(update: Update, context: CallbackContext):
                      "<b>🔑 Why Tokens?</b>\n\n"
                      "Tokens unlock premium features with a quick ad process. Enjoy 24 hours of uninterrupted access! 🌟\n\n"
                      "<b>👉 Tap below to verify your token.</b>\n\n"
+                     "/reffer Bot Link To skip The Verification And Unlock Bot Primium Without Watching Ads\nCheck More About It Send /reffer Command\n\n"
                      "Thank you for your support! ❤️",
                 parse_mode='HTML',
                 reply_markup=InlineKeyboardMarkup(btn)
@@ -538,7 +539,7 @@ async def video_command(update: Update, context: CallbackContext):
             btn = [
                 [InlineKeyboardButton("Verify", url=await get_token(user.id, context.bot.username))],
                 [InlineKeyboardButton("How To Open Link & Verify", url="https://t.me/how_to_download_0011")],
-                [InlineKeyboardButton("reffer", callback_data="reffer")]  # Corrected Referral Button
+                [InlineKeyboardButton("Reffer To Skip Verify", callback_data="reffer")]  # Corrected Referral Button
             ]
             await update.message.reply_text(
                 text="🚨 <b>Token Expired!</b>\n\n"
@@ -547,6 +548,7 @@ async def video_command(update: Update, context: CallbackContext):
                      "<b>🔑 Why Tokens?</b>\n\n"
                      "Tokens unlock premium features with a quick ad process. Enjoy 24 hours of uninterrupted access! 🌟\n\n"
                      "<b>👉 Tap below to verify your token.</b>\n\n"
+                     "/reffer Bot Link To skip The Verification And Unlock Bot Primium Without Watching Ads\nCheck More About It Send /reffer Command\n\n"
                      "Thank you for your support! ❤️",
                 parse_mode='HTML',
                 reply_markup=InlineKeyboardMarkup(btn)
@@ -581,7 +583,7 @@ async def points_command(update: Update, context: CallbackContext) -> None:
         keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Unlock Premium", callback_data="unlock_premium")]])
         await update.message.reply_text(f"Your referral points: {referral_points}\nYou have enough points to unlock premium access! Click the button below to unlock.", reply_markup=keyboard)
     else:
-        await update.message.reply_text(f"Your referral points: {referral_points}")
+        await update.message.reply_text(f"Your referral points: {referral_points}\n\nGet 25 Points Per Complete reffer\nYou Need 50 Points To Unlock (Skip) One Verification\n\nShare More And Earn More Points To Unlock bot Primium Without Verify")
 
 async def unlock_premium(update: Update, context: CallbackContext) -> None:
     # Check if the call is from a callback query or a command
@@ -618,9 +620,9 @@ async def unlock_premium(update: Update, context: CallbackContext) -> None:
             await update.message.reply_text("Premium access unlocked! Your referral points have been reset.")
     else:
         if update.callback_query:
-            await query.message.reply_text("You don't have enough referral points to unlock premium access.")
+            await query.message.reply_text("You don't have enough referral points to unlock premium access.\nCheck Your Points Using /points")
         else:
-            await update.message.reply_text("You don't have enough referral points to unlock premium access.")
+            await update.message.reply_text("You don't have enough referral points to unlock premium access.\nCheck Your Points Using /points")
         
 def main() -> None:
     port = int(os.environ.get('PORT', 8080))
