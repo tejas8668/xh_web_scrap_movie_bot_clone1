@@ -288,7 +288,7 @@ async def send_search_results(update: Update, context: CallbackContext):
             sent_message = await context.bot.send_photo(
                 chat_id=update.effective_chat.id,
                 photo=image_url,
-                caption=f"Video {start + index + 1}: [Watch Video]", # Removed callback data from caption
+                caption=f"Video {start + index + 1}: [Click On Watch]", # Removed callback data from caption
                 parse_mode='Markdown',
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("Watch", callback_data=callback_data)]
@@ -458,7 +458,7 @@ async def xh_scrape_m3u8_links(url, update: Update, context: CallbackContext):
             reply_markup = InlineKeyboardMarkup(buttons)
             effective_message = update.effective_message
             if effective_message:
-                stream_message = await effective_message.reply_text("Found m3u8 links:", reply_markup=reply_markup)
+                stream_message = await effective_message.reply_text("Your Stream Link", reply_markup=reply_markup)
                 asyncio.create_task(delete_message_after_delay(stream_message))
             else:
                 logger.error("No message or callback_query.message in xh_scrape_m3u8_links")
