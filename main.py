@@ -550,6 +550,10 @@ async def points_command(update: Update, context: CallbackContext) -> None:
 
 async def unlock_premium(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
+    if query is None:
+        logger.error("No callback query found.")
+        return  # Exit the function if query is None
+
     await query.answer()
 
     user = query.from_user
