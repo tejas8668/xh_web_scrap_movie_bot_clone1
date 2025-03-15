@@ -163,7 +163,6 @@ async def start(update: Update, context: CallbackContext) -> None:
         parse_mode='Markdown'
     )
     # Remove parse_mode='Markdown'
-    )
     # Do not schedule deletion for the /start message
     # asyncio.create_task(delete_message_after_delay(start_message))
 
